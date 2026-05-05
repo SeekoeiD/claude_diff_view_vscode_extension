@@ -3,7 +3,8 @@
   "displayName": "AI CLI diff view",
   "description": "Inline diff review for AI CLI edits, best with Claude, Codex, and Qwen",
   "version": "1.0.9",
-  "publisher": "konan1947",
+  "publisher": "SeekoeiD",
+  "_TODO_publisher": "TODO: revert publisher to 'konan1947' before opening any PR upstream; this is set to 'SeekoeiD' only for local sideload installs.",
   "license": "MIT",
   "repository": {
     "type": "git",
