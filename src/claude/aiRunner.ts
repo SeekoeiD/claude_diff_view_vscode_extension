@@ -1,8 +1,8 @@
 /**
  * aiRunner.ts
  *
- * Interface chung cho tất cả AI CLI runner (Claude, ...).
- * Cho phép extension hoạt động với nhiều tool mà không thay đổi logic core.
+ * Common interface for all AI CLI runners (Claude, ...).
+ * Lets the extension work with multiple tools without changing core logic.
  */
 
 import { DiffManager } from '../diff/diffManager';
@@ -15,12 +15,12 @@ export type StatusCallback = (
 export type ProgressCallback = (step: string) => void;
 
 export interface IAiRunner {
-  /** Tên tool để hiển thị trên UI ("claude") */
+  /** Tool name for display in the UI ("claude") */
   readonly toolName: string;
 
   /**
-   * Chạy một session AI với prompt cho trước.
-   * Gọi onStatus khi trạng thái thay đổi, onProgress để cập nhật UI.
+   * Runs an AI session with the given prompt.
+   * Calls onStatus when state changes, onProgress to update the UI.
    */
   run(
     prompt: string,
@@ -30,14 +30,14 @@ export interface IAiRunner {
   ): Promise<void>;
 
   /**
-   * Trả về đường dẫn file settings.json của tool này.
-   * Dùng cho tính năng installHooks.
+   * Returns the path to this tool's settings.json file.
+   * Used by the installHooks feature.
    */
   getSettingsFilePath(): string;
 
   /**
-   * Trả về các tool name file-editing mà CLI này dùng.
-   * Dùng cho hook matcher.
+   * Returns the file-editing tool names this CLI uses.
+   * Used for the hook matcher.
    */
   getFileEditToolNames(): string[];
 }

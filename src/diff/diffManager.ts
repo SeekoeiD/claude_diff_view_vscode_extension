@@ -282,6 +282,17 @@ export class DiffManager {
   }
 
   /**
+   * Revert toàn bộ thay đổi của tất cả file đang pending.
+   */
+  async revertAllPending(): Promise<number> {
+    const pendingFiles = this.getPendingFiles();
+    for (const filePath of pendingFiles) {
+      await this.revert(filePath);
+    }
+    return pendingFiles.length;
+  }
+
+  /**
    * Xóa snapshot của một file (sau khi accept/revert từng hunk xong hết).
    * Dùng khi tất cả hunks đã được xử lý thủ công.
    */

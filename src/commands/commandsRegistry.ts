@@ -142,6 +142,17 @@ export function registerAllCommands(deps: CommandDeps): void {
   );
 
   context.subscriptions.push(
+    vscode.commands.registerCommand('ai-cli-diff-view.revertAllChanges', async () => {
+      const total = await diffManager.revertAllPending();
+      if (total === 0) {
+        vscode.window.showWarningMessage('No pending changes to revert.');
+        return;
+      }
+      vscode.window.showInformationMessage(`Reverted all changes in ${total} file(s).`);
+    })
+  );
+
+  context.subscriptions.push(
     vscode.commands.registerCommand('ai-cli-diff-view.revertAllHunks', async () => {
       const filePath = getActiveDiffFilePath();
       if (!filePath) {

@@ -67,6 +67,10 @@ export class SessionPanelProvider implements vscode.WebviewViewProvider {
         void vscode.commands.executeCommand('ai-cli-diff-view.openPendingFile', msg.path);
       } else if (msg.command === 'installHooks') {
         void vscode.commands.executeCommand('ai-cli-diff-view.installHooks');
+      } else if (msg.command === 'acceptAllChanges') {
+        void vscode.commands.executeCommand('ai-cli-diff-view.acceptAllChanges');
+      } else if (msg.command === 'revertAllChanges') {
+        void vscode.commands.executeCommand('ai-cli-diff-view.revertAllChanges');
       }
     });
     this.render();
@@ -119,7 +123,15 @@ export class SessionPanelProvider implements vscode.WebviewViewProvider {
         <span>Pending changes</span>
         <span class="badge">${pending.length}</span>
       </div>
-      <div class="file-tree" id="file-tree">${pendingTreeHtml}</div>`;
+      <div class="file-tree" id="file-tree">${pendingTreeHtml}</div>
+      <div class="bulk-actions">
+        <button type="button" class="btn-bulk btn-accept-all" id="btn-accept-all" title="Accept all pending changes across every file">
+          Accept All
+        </button>
+        <button type="button" class="btn-bulk btn-reject-all" id="btn-reject-all" title="Revert all pending changes across every file">
+          Reject All
+        </button>
+      </div>`;
 
     const hookDet = detectOurClaudeHooks(this.context.extensionUri.fsPath);
     const hooksOk = hooksFullyActive(hookDet);
@@ -343,6 +355,38 @@ export class SessionPanelProvider implements vscode.WebviewViewProvider {
   .btn-install:hover { filter: brightness(1.08); }
   .btn-install:active { filter: brightness(0.95); }
 
+  .bulk-actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 10px;
+  }
+  .btn-bulk {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--vscode-button-foreground, #ffffff);
+    transition: filter 0.12s;
+  }
+  .btn-bulk:hover { filter: brightness(1.1); }
+  .btn-bulk:active { filter: brightness(0.92); }
+  .btn-accept-all {
+    background: var(--vscode-testing-iconPassed, #2ea043);
+    border-color: var(--vscode-testing-iconPassed, #2ea043);
+  }
+  .btn-reject-all {
+    background: var(--vscode-errorForeground, #f14c4c);
+    border-color: var(--vscode-errorForeground, #f14c4c);
+  }
+
   .footer-note { font-size: 10px; opacity: 0.4; line-height: 1.35; margin-top: 8px; }
 
   .hook-status {
@@ -413,6 +457,18 @@ export class SessionPanelProvider implements vscode.WebviewViewProvider {
     document.getElementById('btn-install').addEventListener('click', function () {
       vscode.postMessage({ command: 'installHooks' });
     });
+    var btnAcceptAll = document.getElementById('btn-accept-all');
+    if (btnAcceptAll) {
+      btnAcceptAll.addEventListener('click', function () {
+        vscode.postMessage({ command: 'acceptAllChanges' });
+      });
+    }
+    var btnRejectAll = document.getElementById('btn-reject-all');
+    if (btnRejectAll) {
+      btnRejectAll.addEventListener('click', function () {
+        vscode.postMessage({ command: 'revertAllChanges' });
+      });
+    }
   </script>
 </body>
 </html>`;

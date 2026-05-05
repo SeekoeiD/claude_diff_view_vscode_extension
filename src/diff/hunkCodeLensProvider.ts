@@ -2,8 +2,8 @@ import * as vscode from 'vscode';
 import { DiffManager } from './diffManager';
 
 /**
- * Cung cấp CodeLens (nút bấm "Accept Hunk | Revert Hunk") hiển thị ngay trên mỗi block thay đổi.
- * Khắc phục giới hạn của chuẩn VS Code (không cho phép click trực tiếp vào gutter icon).
+ * Provides CodeLens entries ("Accept Hunk | Revert Hunk" buttons) shown directly above each change block.
+ * Works around the VS Code limitation that gutter icons can't be clicked directly.
  */
 export class HunkCodeLensProvider implements vscode.CodeLensProvider {
   private _onDidChangeCodeLenses = new vscode.EventEmitter<void>();

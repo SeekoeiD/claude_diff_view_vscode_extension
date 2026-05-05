@@ -69,6 +69,10 @@
         "title": "AI CLI Diff: Revert All Changes"
       },
       {
+        "command": "ai-cli-diff-view.revertAllChanges",
+        "title": "AI CLI Diff: Revert All Changes (All Files)"
+      },
+      {
         "command": "ai-cli-diff-view.acceptHunk",
         "title": "AI CLI Diff: Accept Hunk"
       },

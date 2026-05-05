@@ -57,11 +57,12 @@ export class ClaudeRunner implements IAiRunner {
   constructor(private readonly diffManager: DiffManager) {}
 
   /**
-   * Claude CLI có thể trả về path tương đối so với workingDir.
-   * Nếu extension host resolve sai base dir thì sẽ snapshot/openDiff nhầm file.
+   * The Claude CLI may return paths relative to workingDir.
+   * If the extension host resolves the base dir incorrectly, snapshot/openDiff
+   * will target the wrong file.
    */
   private resolveToolFilePath(filePath: string, workingDir: string): string {
-    // path.isAbsolute trên win32 xử lý tốt cả "C:\\..." và "D:/..."
+    // path.isAbsolute on win32 handles both "C:\\..." and "D:/..." correctly
     if (path.isAbsolute(filePath)) { return filePath; }
     return path.resolve(workingDir, filePath);
   }
