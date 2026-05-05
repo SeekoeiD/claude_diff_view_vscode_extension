@@ -1,9 +1,8 @@
 import * as cp from 'child_process';
 import * as path from 'path';
-import * as fs from 'fs';
-import * as os from 'os';
 import { DiffManager } from '../diff/diffManager';
 import { IAiRunner, StatusCallback, ProgressCallback } from './aiRunner';
+import { findClaudeCli } from './claudeLocator';
 
 // ---- Types matching claude CLI stream-json output ----
 
@@ -77,43 +76,12 @@ export class ClaudeRunner implements IAiRunner {
   }
 
   /**
-   * Finds the claude CLI executable on Windows.
-   * Tries PATH lookup first, then falls back to the known install location.
+   * Finds the claude CLI executable. Tries PATH first, then the known
+   * %USERPROFILE%\.local\bin install location.
    */
   private findClaudeCli(): string {
-    const candidates = ['claude', 'claude.cmd', 'claude.exe'];
-
-    // Try each candidate via `where` (Windows) / `which` (unix)
-    const lookupCmd = process.platform === 'win32' ? 'where' : 'which';
-    for (const candidate of candidates) {
-      try {
-        const result = cp.spawnSync(
-          lookupCmd,
-          [candidate.replace(/\.(cmd|exe)$/, '')],
-          { encoding: 'utf8', timeout: 3000 }
-        );
-        if (result.status === 0 && result.stdout.trim()) {
-          return candidate;
-        }
-      } catch {
-        // ignore — try next candidate
-      }
-    }
-
-    // Fallback: check known Windows install path
-    const homeDir =
-      process.env['USERPROFILE'] ?? process.env['HOME'] ?? '';
-    if (homeDir) {
-      const absolutePath = path.join(homeDir, '.local', 'bin', 'claude.exe');
-      if (fs.existsSync(absolutePath)) {
-        return absolutePath;
-      }
-      const absolutePathNoExt = path.join(homeDir, '.local', 'bin', 'claude');
-      if (fs.existsSync(absolutePathNoExt)) {
-        return absolutePathNoExt;
-      }
-    }
-
+    const found = findClaudeCli();
+    if (found) { return found; }
     throw new Error(
       'claude CLI not found.\n' +
         'Install Claude Code and ensure "claude" is on your PATH.\n' +

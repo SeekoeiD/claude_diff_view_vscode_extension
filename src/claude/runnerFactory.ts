@@ -4,29 +4,16 @@
  * Detects supported AI CLI launchers and returns the matching runner.
  */
 
-import * as cp from 'child_process';
 import { DiffManager } from '../diff/diffManager';
 import { IAiRunner } from './aiRunner';
 import { ClaudeRunner } from './claudeRunner';
+import { isClaudeAvailable } from './claudeLocator';
 
 type ToolName = 'claude';
 
-function isToolAvailable(tool: string): boolean {
-  const lookupCmd = process.platform === 'win32' ? 'where' : 'which';
-  try {
-    const result = cp.spawnSync(lookupCmd, [tool], {
-      encoding: 'utf8',
-      timeout: 3000,
-    });
-    return result.status === 0 && !!result.stdout.trim();
-  } catch {
-    return false;
-  }
-}
-
 function detectAvailableTools(): ToolName[] {
   const available: ToolName[] = [];
-  if (isToolAvailable('claude')) {
+  if (isClaudeAvailable()) {
     available.push('claude');
   }
   return available;
