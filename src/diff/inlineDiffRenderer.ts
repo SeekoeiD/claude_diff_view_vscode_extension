@@ -194,8 +194,8 @@ export class InlineDiffRenderer {
 
     this.fileStates.delete(normalizedPath);
 
-    // Khi file đang active bị xóa khỏi state, cần cập nhật nav UI ngay,
-    // kể cả khi vẫn còn các file pending khác khác đang mở.
+    // When the active file is removed from state, update the nav UI immediately,
+    // even if other pending files are still open.
     if (isActiveEditor) {
       const navInfo = this.navigationManager?.getNavigationInfo(normalizedPath);
       this.onNavUpdate?.(navInfo);
@@ -207,7 +207,7 @@ export class InlineDiffRenderer {
     }
   }
 
-  /** Xóa tất cả khi deactivate. */
+  /** Clear everything on deactivate. */
   disposeAll(): void {
     for (const filePath of Array.from(this.fileStates.keys())) {
       this.clear(filePath);
@@ -215,7 +215,7 @@ export class InlineDiffRenderer {
     this.decorations.disposeAll();
   }
 
-  /** Áp dụng lại decoration lên tất cả editor đang hiển thị file. */
+  /** Re-applies decorations to every editor currently showing the file. */
   applyDecorations(filePath: string): void {
     const normalizedPath = this.normalizePath(filePath);
     const state = this.fileStates.get(normalizedPath);
@@ -233,8 +233,8 @@ export class InlineDiffRenderer {
   }
 
   /**
-   * Trả về true nếu editor đang là một phần của diff view.
-   * Dùng Tab API (VSCode 1.71+).
+   * Returns true if the editor is part of a diff view.
+   * Uses the Tab API (VSCode 1.71+).
    */
   public isEditorInDiffView(editor: vscode.TextEditor): boolean {
     if (editor.viewColumn === undefined) { return true; }

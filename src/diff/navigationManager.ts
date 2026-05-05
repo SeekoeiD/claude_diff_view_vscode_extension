@@ -12,14 +12,14 @@ export class NavigationManager {
   constructor(private readonly diffManager: DiffManager) {}
 
   /**
-   * Chuyển sang file tiếp theo trong danh sách pending diffs.
+   * Switches to the next file in the pending diffs list.
    */
   async nextFile(): Promise<void> {
     await this.navigate(1);
   }
 
   /**
-   * Quay lại file trước đó trong danh sách pending diffs.
+   * Switches back to the previous file in the pending diffs list.
    */
   async prevFile(): Promise<void> {
     await this.navigate(-1);
@@ -35,7 +35,7 @@ export class NavigationManager {
     const currentEditor = vscode.window.activeTextEditor;
     const currentPath = currentEditor ? normalizePath(currentEditor.document.uri.fsPath) : '';
     
-    // Nếu chỉ còn 1 file pending: nếu user đang đứng ở file khác thì mở diff đó ngay.
+    // If only one pending file remains: if the user is on a different file, open that diff immediately.
     if (pendingFiles.length === 1) {
       if (normalizePath(pendingFiles[0]) !== currentPath) {
         await this.diffManager.openDiff(pendingFiles[0]);
@@ -44,8 +44,8 @@ export class NavigationManager {
     }
 
     let currentIndex = pendingFiles.indexOf(currentPath);
-    // Nếu không tìm thấy file hiện tại (đang ở file khác không có diff),
-    // chọn biên phù hợp theo hướng để điều hướng không bị wrap.
+    // If the current file isn't found (user is on another file with no diff),
+    // pick the appropriate boundary in the navigation direction so it doesn't wrap.
     if (currentIndex === -1) {
       currentIndex = direction > 0 ? 0 : pendingFiles.length - 1;
     } else {
@@ -61,7 +61,7 @@ export class NavigationManager {
   }
 
   /**
-   * Lấy danh sách thông tin để hiển thị trên thanh điều hướng.
+   * Returns the info needed to render the navigation bar.
    */
   getNavigationInfo(currentFilePath: string) {
     const pendingFiles = this.diffManager.getPendingFiles();
@@ -83,9 +83,9 @@ export class NavigationManager {
     const currentPath = normalizePath(currentFilePath);
     const rawIndex = pendingFiles.indexOf(currentPath);
 
-    // Nếu user đang đứng ở file không pending, nút Next/Prev sẽ "mở" một file biên:
-    // - Next: mở pending đầu tiên
-    // - Prev: mở pending cuối cùng
+    // If the user is on a non-pending file, Next/Prev opens a boundary file:
+    // - Next: opens the first pending file
+    // - Prev: opens the last pending file
     if (rawIndex === -1) {
       const first = pendingFiles[0]!;
       const last = pendingFiles[pendingFiles.length - 1]!;

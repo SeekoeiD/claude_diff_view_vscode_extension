@@ -21,7 +21,7 @@ export class HookWatcher {
   }
 
   /**
-   * Kiểm tra xem filePath có thuộc workspace đang mở hay không.
+   * Checks whether filePath belongs to the currently open workspace.
    */
   private belongsToCurrentWorkspace(filePath: string): boolean {
     const folders = vscode.workspace.workspaceFolders;
@@ -79,13 +79,13 @@ export class HookWatcher {
         return;
       }
 
-      // Bỏ qua signal nếu file không thuộc workspace hiện tại.
-      // Không xóa signal file — để VS Code window đúng xử lý.
+      // Ignore the signal if the file isn't in the current workspace.
+      // Don't delete the signal file — let the correct VS Code window handle it.
       if (!this.belongsToCurrentWorkspace(filePath)) {
         return;
       }
 
-      fs.unlinkSync(signalPath); // consume sau khi xác nhận thuộc workspace này
+      fs.unlinkSync(signalPath); // consume after confirming the file belongs to this workspace
 
       // Load the snapshot (written by pre-tool-hook.js) into DiffManager
       let snapshotContent = '';

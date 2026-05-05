@@ -588,7 +588,7 @@ function buildPendingTreeModel(pending: string[]): TreeJson {
   return dirBuildToJson(root);
 }
 
-/** Map extension → tên file SVG trong material-icon-theme/icons/ */
+/** Map extension → SVG filename in material-icon-theme/icons/ */
 const EXT_ICON: Record<string, string> = {
   ts: 'typescript', tsx: 'react_ts',
   js: 'javascript', jsx: 'react',  mjs: 'javascript', cjs: 'javascript',

@@ -1,8 +1,8 @@
 /**
  * fileSnapshotStore.ts
  *
- * Quản lý snapshot nội dung các file trong workspace để
- * WorkspaceWatcher có thể phát hiện external writes so với baseline.
+ * Manages content snapshots of workspace files so WorkspaceWatcher can
+ * detect external writes against a baseline.
  */
 
 import * as fs from 'fs';
@@ -11,7 +11,7 @@ import * as vscode from 'vscode';
 import { isExcludedPathSegment } from './pathExclusions';
 
 export class FileSnapshotStore {
-  /** filePath -> nội dung baseline trước khi external process ghi đè */
+  /** filePath -> baseline content before any external process overwrote it */
   private snapshots = new Map<string, string>();
 
   private normalizePath(p: string): string {
@@ -32,19 +32,19 @@ export class FileSnapshotStore {
   }
 
   /**
-   * Đệ quy snapshot nội dung tất cả file text trong một thư mục.
-   * Chỉ chạy lần đầu khi extension khởi động để tạo baseline.
+   * Recursively snapshots the content of every text file in a folder.
+   * Runs only once at extension startup to establish the baseline.
    */
   buildInitialSnapshots(folderPath: string): void {
     try {
       this.snapshotDir(folderPath, 0);
     } catch {
-      // ignore lỗi permission hoặc thư mục không có quyền đọc
+      // ignore permission errors or folders we can't read
     }
   }
 
   private snapshotDir(dirPath: string, depth: number): void {
-    if (depth > 5) { return; } // giới hạn độ sâu để tránh tràn stack
+    if (depth > 5) { return; } // limit depth to avoid stack overflow
     const entries = fs.readdirSync(dirPath, { withFileTypes: true });
     for (const entry of entries) {
       if (entry.name.startsWith('.')) {
@@ -61,7 +61,7 @@ export class FileSnapshotStore {
           const content = fs.readFileSync(fullPath, 'utf8');
           this.snapshots.set(this.normalizePath(fullPath), content);
         } catch {
-          // binary hoặc file đang bị lock — bỏ qua
+          // binary or locked file — skip
         }
       }
     }
@@ -70,7 +70,7 @@ export class FileSnapshotStore {
 
 
 /**
- * Kiểm tra xem file có phải là text file không dựa trên extension.
+ * Checks whether a file is a text file based on its extension.
  */
 export function isTextFile(filename: string): boolean {
   const textExts = new Set([

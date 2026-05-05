@@ -1,13 +1,13 @@
 /**
  * workspaceWatcher.ts
  *
- * Theo dõi file thay đổi trong workspace qua VS Code API và fs.watch.
- * Khi bất kỳ file nào được ghi (bởi Claude, hay bất kỳ tool nào),
- * extension sẽ tự động snapshot và hiện inline diff.
+ * Watches for file changes in the workspace via the VS Code API and fs.watch.
+ * Whenever any file is written (by Claude or any other tool), the extension
+ * automatically snapshots it and shows the inline diff.
  *
  * Flow:
- *   1. onDidSaveTextDocument → sync snapshot để fs.watch không trigger diff sai
- *   2. fs.watch workspace folders → bắt được cả file ghi từ external process
+ *   1. onDidSaveTextDocument → sync the snapshot so fs.watch doesn't trigger a false diff
+ *   2. fs.watch workspace folders → also catches files written by external processes
  */
 
 import * as vscode from 'vscode';
@@ -19,9 +19,9 @@ import { isExcludedPathSegment } from './pathExclusions';
 
 export class WorkspaceWatcher {
   private disposables: vscode.Disposable[] = [];
-  /** Debounce: thời điểm lần cuối xử lý mỗi file */
+  /** Debounce: timestamp of the last processed event per file */
   private lastProcessed = new Map<string, number>();
-  /** Lưu thời điểm VS Code vừa Save file (để bỏ qua fs.watch trigger từ chính VS Code) */
+  /** Tracks when VS Code last saved a file (so we can ignore fs.watch events from VS Code itself) */
   private savedFilesByVsCode = new Map<string, number>();
   private readonly snapshots: FileSnapshotStore;
 
@@ -44,8 +44,8 @@ export class WorkspaceWatcher {
   }
 
   /**
-   * Sync snapshot khi VS Code save — đảm bảo fs.watch không trigger diff sai.
-   * (onDidSaveTextDocument luôn fire trước fs.watch)
+   * Sync the snapshot on a VS Code save — ensures fs.watch doesn't fire a false diff.
+   * (onDidSaveTextDocument always fires before fs.watch)
    */
   private watchVscodeEvents(): void {
     const d = vscode.workspace.onDidSaveTextDocument((doc) => {
@@ -75,8 +75,8 @@ export class WorkspaceWatcher {
     });
     this.disposables.push(d);
 
-    // Sử dụng FileSystemWatcher native của VS Code thay vì fs.watch để tránh kẹt event loop
-    // khi tạo mới project có hàng ngàn file (VD: node_modules trong Next.js)
+    // Use VS Code's native FileSystemWatcher instead of fs.watch to avoid stalling the event loop
+    // when a new project has thousands of files (e.g. node_modules in Next.js).
     const fileWatcher = vscode.workspace.createFileSystemWatcher('**/*');
     const handleUri = (uri: vscode.Uri) => {
       this.handleExternalWrite(uri.fsPath);
@@ -99,20 +99,20 @@ export class WorkspaceWatcher {
   private handleExternalWrite(filePath: string): void {
     const absPath = this.normalizePath(filePath);
 
-    // Bỏ qua dependency / build output / tooling (dotnet bin/obj, node_modules, …)
+    // Skip dependency / build output / tooling (dotnet bin/obj, node_modules, …)
     if (isExcludedPathSegment(absPath)) {
       return;
     }
 
-    // 1. Kiểm tra xem file này vừa được VS Code Save hay không
+    // 1. Check whether this file was just saved by VS Code itself
     const lastVsCodeSave = this.savedFilesByVsCode.get(absPath) ?? 0;
     const now = Date.now();
     if (now - lastVsCodeSave < 2000) {
-      // Bỏ qua vì đây là viết từ chính VS Code editor
+      // Skip — this write came from the VS Code editor itself
       return;
     }
 
-    // 2. Debounce: bỏ qua nếu vừa xử lý file này trong 500ms
+    // 2. Debounce: skip if we processed this file within the last 500ms
     const lastTime = this.lastProcessed.get(absPath) ?? 0;
     if (now - lastTime < 500) { return; }
     this.lastProcessed.set(absPath, now);
@@ -120,7 +120,7 @@ export class WorkspaceWatcher {
     if (!isTextFile(path.basename(absPath))) { return; }
     if (!this.isInWorkspace(absPath)) { return; }
 
-    // Đọc nội dung mới từ disk sau một chút để đảm bảo write xong
+    // Read the new content from disk after a short delay to make sure the write has finished
     setTimeout(() => {
       // Re-check after timeout in case VS Code onDidSaveTextDocument fired during the 200ms delay
       const lastVsCodeSaveAfterTimeout = this.savedFilesByVsCode.get(absPath) ?? 0;
@@ -147,15 +147,15 @@ export class WorkspaceWatcher {
 
         if (oldContent === newContent) { return; }
 
-        // Trước khi trigger diff mới, cập nhật baseline vào snapshot store của watcher
-        // để lần save kế tiếp không bị trigger lại.
+        // Before triggering a new diff, update the watcher's snapshot baseline
+        // so the next save doesn't trigger again.
         this.snapshots.set(absPath, newContentRaw);
 
         if (!this.diffManager.hasPendingDiff(absPath)) {
           this.triggerDiff(absPath, oldContentRaw!, newContentRaw, true);
         }
       } catch {
-        // file đang bị lock hoặc xóa — bỏ qua
+        // file is locked or deleted — skip
       }
     }, 200);
   }
@@ -174,7 +174,7 @@ export class WorkspaceWatcher {
     return folders.some(f => normalizedPath.startsWith(this.normalizePath(f.uri.fsPath)));
   }
 
-  /** Cập nhật snapshot khi người dùng tự sửa file (để baseline luôn đúng) */
+  /** Update the snapshot when the user edits a file directly (so the baseline stays accurate) */
   updateSnapshot(filePath: string, content: string): void {
     this.snapshots.set(this.normalizePath(filePath), content);
   }

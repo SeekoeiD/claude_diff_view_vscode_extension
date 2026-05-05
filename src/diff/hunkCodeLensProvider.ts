@@ -2,8 +2,8 @@ import * as vscode from 'vscode';
 import { DiffManager } from './diffManager';
 
 /**
- * Cung cấp CodeLens (nút bấm "Accept Hunk | Revert Hunk") hiển thị ngay trên mỗi block thay đổi.
- * Khắc phục giới hạn của chuẩn VS Code (không cho phép click trực tiếp vào gutter icon).
+ * Provides CodeLens entries ("Accept Hunk | Revert Hunk" buttons) shown directly above each change block.
+ * Works around the VS Code limitation that gutter icons can't be clicked directly.
  */
 export class HunkCodeLensProvider implements vscode.CodeLensProvider {
   private _onDidChangeCodeLenses = new vscode.EventEmitter<void>();
@@ -16,13 +16,13 @@ export class HunkCodeLensProvider implements vscode.CodeLensProvider {
   }
 
   /**
-   * Trả về true nếu document đang được mở trong ít nhất một regular editor
-   * (không phải diff editor). Dùng Tab API (VSCode 1.71+).
+   * Returns true if the document is open in at least one regular editor
+   * (not a diff editor). Uses the Tab API (VSCode 1.71+).
    */
   private hasRegularEditor(document: vscode.TextDocument): boolean {
     const fsPath = document.uri.fsPath;
 
-    // Tập hợp các tab đang là diff editor
+    // Collect tabs that are diff editors
     const diffModifiedPaths = new Set<string>();
     for (const group of vscode.window.tabGroups.all) {
       for (const tab of group.tabs) {
@@ -33,7 +33,7 @@ export class HunkCodeLensProvider implements vscode.CodeLensProvider {
       }
     }
 
-    // Kiểm tra có tab thường nào mở file này không
+    // Check whether any regular tab has this file open
     for (const group of vscode.window.tabGroups.all) {
       for (const tab of group.tabs) {
         if (tab.input instanceof vscode.TabInputText) {
@@ -44,7 +44,7 @@ export class HunkCodeLensProvider implements vscode.CodeLensProvider {
       }
     }
 
-    // Không tìm thấy regular tab → chỉ có trong diff editor
+    // No regular tab found → file is only present in a diff editor
     return !diffModifiedPaths.has(fsPath);
   }
 
@@ -54,13 +54,13 @@ export class HunkCodeLensProvider implements vscode.CodeLensProvider {
   ): vscode.CodeLens[] | Thenable<vscode.CodeLens[]> {
     const filePath = document.uri.fsPath;
 
-    // Chỉ hiện CodeLens nếu file đang có pending diff
+    // Only show CodeLens if the file has a pending diff
     if (!this.diffManager.hasPendingDiff(filePath)) {
       return [];
     }
 
-    // Bỏ điều kiện này để cho phép nút nguồn hiện chữ Accept/Revert Hunk ngay bên trong 
-    // màn hình Diff Editor (ở nửa tab bên phải - Modified).
+    // Skip this check so the Accept/Revert Hunk buttons also appear inside
+    // the Diff Editor view (in the right-hand Modified pane).
     // if (!this.hasRegularEditor(document)) {
     //   return [];
     // }
@@ -72,23 +72,23 @@ export class HunkCodeLensProvider implements vscode.CodeLensProvider {
     for (let index = 0; index < hunks.length; index++) {
       const hunk = hunks[index]!;
       const hunkLabel = `Hunk ${index + 1}/${totalHunks}`;
-      // Đặt CodeLens ở dòng bắt đầu của hunk
+      // Anchor the CodeLens at the hunk's starting line
       const lineIdx = Math.max(0, hunk.modifiedStart);
       const range = new vscode.Range(lineIdx, 0, lineIdx, 0);
 
-      // Nút Accept
+      // Accept button
       const acceptCmd: vscode.Command = {
         title: `$(check) Accept ${hunkLabel}`,
-        tooltip: 'Chấp nhận các thay đổi này',
+        tooltip: 'Accept these changes',
         command: 'ai-cli-diff-view.acceptHunk',
         arguments: [filePath, hunk.id],
       };
       lenses.push(new vscode.CodeLens(range, acceptCmd));
 
-      // Nút Revert
+      // Revert button
       const revertCmd: vscode.Command = {
         title: `$(discard) Revert ${hunkLabel}`,
-        tooltip: 'Hủy bỏ thay đổi, quay về gốc',
+        tooltip: 'Discard the changes and restore the original',
         command: 'ai-cli-diff-view.revertHunk',
         arguments: [filePath, hunk.id],
       };
