@@ -142,17 +142,13 @@ export class DiffManager {
       return;
     }
 
-    // Chuyển sang dùng UI chuẩn của VS Code: Diff Editor. 
-    // Dùng chung 1 query ID cho suốt quá trình Diff để khỏi bị mở đúp thành 2 tab
-    const queryId = this.snapshotQueries.get(absPath) || Date.now().toString();
-    const originalUri = vscode.Uri.file(absPath).with({ scheme: 'ai-cli-diff', query: queryId });
+    // Open the real file directly so accept/revert hunk CodeLens shows
+    // inline in the normal editor instead of a side-by-side diff tab.
     const modifiedUri = vscode.Uri.file(absPath);
-    const title = `AI CLI Diff: ${path.basename(absPath)}`;
-    
-    // Vẫn cần gọi renderer để tính toán danh sách hunks (giúp render CodeLens)
-    this.renderer.show(absPath, snapshot.content, modifiedContent);
+    await vscode.window.showTextDocument(modifiedUri, { preview: false });
 
-    await vscode.commands.executeCommand('vscode.diff', originalUri, modifiedUri, title, { preview: false });
+    // Renderer computes hunks and applies inline decorations / CodeLens.
+    this.renderer.show(absPath, snapshot.content, modifiedContent);
     this._onDidChangeDiffs.fire();
   }
 
