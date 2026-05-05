@@ -15,6 +15,8 @@ const EXCLUDED_SEGMENTS = new Set([
   '.vscode',
   '.idea',
   '.claude',
+  // Hook log written by Claude Code PostToolUse hooks; not user-edited content.
+  'codediff.txt',
   // .NET / Visual Studio
   'bin',
   'obj',

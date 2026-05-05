@@ -1,8 +1,8 @@
 /**
  * inlineDiffRenderer.ts
  *
- * Quản lý state inline diff cho các file đang mở.
- * Delegate việc render decoration sang DecorationManager.
+ * Manages inline-diff state for open files.
+ * Delegates decoration rendering to DecorationManager.
  */
 
 import * as vscode from 'vscode';
@@ -12,14 +12,14 @@ import { DecorationManager } from './decorationManager';
 import { NavigationManager } from './navigationManager';
 import { DiffManager } from './diffManager';
 
-/** State của một file đang có inline diff */
+/** State of a file that currently has an inline diff */
 interface FileDiffState {
   originalContent: string;
   hunks: Hunk[];
 }
 
 export class InlineDiffRenderer {
-  /** Map filePath -> trạng thái diff hiện tại */
+  /** Map filePath -> current diff state */
   private fileStates = new Map<string, FileDiffState>();
   private readonly decorations: DecorationManager;
   private navigationManager?: NavigationManager;
@@ -52,7 +52,7 @@ export class InlineDiffRenderer {
   }
 
   /**
-   * Hiển thị inline diff cho một file đang mở trong editor.
+   * Shows the inline diff for a file currently open in an editor.
    */
   show(filePath: string, originalContent: string, modifiedContent: string): void {
     const normalizedPath = this.normalizePath(filePath);
@@ -63,8 +63,8 @@ export class InlineDiffRenderer {
 
 
   /**
-   * Revert một hunk cụ thể (khôi phục về nội dung gốc của hunk đó).
-   * Trả về true nếu không còn pending diff.
+   * Reverts a specific hunk (restoring its original content).
+   * Returns true if no pending diff remains.
    */
   async revertHunk(filePath: string, hunkId: string): Promise<boolean> {
     const normalizedPath = this.normalizePath(filePath);
@@ -90,7 +90,7 @@ export class InlineDiffRenderer {
       );
 
       if (hunk.removedLines.length === 0) {
-        // Thuần insert — xóa các dòng được thêm
+        // Pure insert — remove the added lines
         wsEdit.delete(document.uri, new vscode.Range(
           new vscode.Position(firstAdded.modifiedLineIndex, 0),
           new vscode.Position(lastAdded.modifiedLineIndex + 1, 0)
@@ -100,7 +100,7 @@ export class InlineDiffRenderer {
         wsEdit.replace(document.uri, new vscode.Range(startPos, endPos), replacementText);
       }
     } else if (hunk.removedLines.length > 0) {
-      // Thuần delete — chèn lại các dòng bị xóa
+      // Pure delete — re-insert the removed lines
       const insertPos  = new vscode.Position(hunk.modifiedStart, 0);
       const insertText = hunk.removedLines.map(r => r.text).join('\n') + '\n';
       wsEdit.insert(document.uri, insertPos, insertText);
@@ -108,7 +108,7 @@ export class InlineDiffRenderer {
 
     await vscode.workspace.applyEdit(wsEdit);
 
-    // Cập nhật hunks và điều chỉnh offset các hunk phía sau
+    // Update hunks and adjust the offset of subsequent hunks
     const delta = hunk.removedLines.length - hunk.addedLines.length;
     state.hunks = state.hunks.filter(h => h.id !== hunkId);
 
@@ -129,12 +129,12 @@ export class InlineDiffRenderer {
     return false;
   }
 
-  /** Chấp nhận toàn bộ thay đổi trong file. */
+  /** Accepts every change in the file. */
   acceptAll(filePath: string): void {
     this.clear(this.normalizePath(filePath));
   }
 
-  /** Revert toàn bộ về nội dung gốc. */
+  /** Reverts everything back to the original content. */
   async revertAll(filePath: string): Promise<void> {
     const normalizedPath = this.normalizePath(filePath);
     const state = this.fileStates.get(normalizedPath);
@@ -154,18 +154,18 @@ export class InlineDiffRenderer {
     this.clear(normalizedPath);
   }
 
-  /** Lấy danh sách hunks của một file. */
+  /** Returns the list of hunks for a file. */
   getHunks(filePath: string): Hunk[] {
     return this.fileStates.get(this.normalizePath(filePath))?.hunks ?? [];
   }
 
-  /** Kiểm tra xem file có đang có pending diff không. */
+  /** Returns whether the file currently has a pending diff. */
   hasPending(filePath: string): boolean {
     const state = this.fileStates.get(this.normalizePath(filePath));
     return (state?.hunks.length ?? 0) > 0;
   }
 
-  /** Xóa tất cả decoration của file và xóa khỏi state. */
+  /** Clears all decorations for the file and removes it from state. */
   clear(filePath: string): void {
     const normalizedPath = this.normalizePath(filePath);
     const activeFsPath = vscode.window.activeTextEditor?.document.uri.fsPath;
@@ -173,8 +173,8 @@ export class InlineDiffRenderer {
       ? this.normalizePath(activeFsPath) === normalizedPath
       : false;
 
-    // Nếu state đã bị xóa trước đó (ví dụ DiffManager gọi acceptAll -> clear rồi mới cleanup),
-    // vẫn cần cập nhật nav UI khi file vừa active đã hết pending.
+    // If the state was already cleared earlier (e.g. DiffManager called acceptAll -> clear, then cleanup),
+    // we still need to refresh the nav UI when the active file no longer has pending changes.
     if (!this.fileStates.has(normalizedPath)) {
       if (isActiveEditor) {
         const navInfo = this.navigationManager?.getNavigationInfo(normalizedPath);

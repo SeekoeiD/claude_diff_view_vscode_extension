@@ -11,6 +11,7 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import { InlineDiffRenderer } from './inlineDiffRenderer';
 import { calculateHunks } from './hunkCalculator';
+import { isExcludedPathSegment } from '../watcher/pathExclusions';
 
 const STATE_KEY = 'ai-cli-diff.snapshots';
 
@@ -58,11 +59,16 @@ export class DiffManager {
 
   private restoreState(): void {
     const saved = this.context.workspaceState.get<Record<string, string | SnapshotState>>(STATE_KEY, {});
+    let pruned = false;
     for (const [absPath, savedSnapshot] of Object.entries(saved)) {
       if (!fs.existsSync(absPath)) { continue; }
+      // Drop any persisted entries for hardcoded-ignored paths (e.g. .claude/codediff.txt)
+      // that may have been saved before exclusion was enforced at entry points.
+      if (isExcludedPathSegment(absPath)) { pruned = true; continue; }
       this.snapshots.set(absPath, this.normalizeSavedSnapshot(savedSnapshot));
       this.snapshotQueries.set(absPath, Date.now().toString());
     }
+    if (pruned) { this.persistState(); }
   }
 
   private persistState(): void {
@@ -91,6 +97,7 @@ export class DiffManager {
    */
   async snapshotBefore(filePath: string): Promise<void> {
     const absPath = normalizePath(filePath);
+    if (isExcludedPathSegment(absPath)) { return; }
     if (this.snapshots.has(absPath)) {
       // Đã có snapshot — giữ bản gốc nhất, không ghi đè
       return;
@@ -157,6 +164,7 @@ export class DiffManager {
    */
   loadSnapshot(filePath: string, content: string, fileExistedBefore = true): void {
     const absPath = normalizePath(filePath);
+    if (isExcludedPathSegment(absPath)) { return; }
     if (!this.snapshots.has(absPath)) {
       this.snapshots.set(absPath, { content, fileExistedBefore });
       this.snapshotQueries.set(absPath, Date.now().toString());
