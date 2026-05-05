@@ -23,6 +23,8 @@ export class WorkspaceWatcher {
   private lastProcessed = new Map<string, number>();
   /** Tracks when VS Code last saved a file (so we can ignore fs.watch events from VS Code itself) */
   private savedFilesByVsCode = new Map<string, number>();
+  /** Tracks paths involved in a recent VS Code rename so the resulting fs.watch event is skipped */
+  private recentlyRenamed = new Map<string, number>();
   private readonly snapshots: FileSnapshotStore;
 
   constructor(private readonly diffManager: DiffManager) {
@@ -48,7 +50,7 @@ export class WorkspaceWatcher {
    * (onDidSaveTextDocument always fires before fs.watch)
    */
   private watchVscodeEvents(): void {
-    const d = vscode.workspace.onDidSaveTextDocument((doc) => {
+    const saveDisposable = vscode.workspace.onDidSaveTextDocument((doc) => {
       const filePath = this.normalizePath(doc.uri.fsPath);
       this.snapshots.set(filePath, doc.getText());
       this.savedFilesByVsCode.set(filePath, Date.now());
@@ -57,7 +59,27 @@ export class WorkspaceWatcher {
         this.diffManager.renderer.applyDecorations(filePath);
       }
     });
-    this.disposables.push(d);
+    this.disposables.push(saveDisposable);
+
+    // Renames within VS Code (drag in explorer, F2, Move To...) trigger a
+    // create+delete pair on the file watcher. Without this hook the new
+    // location has no baseline snapshot, so handleExternalWrite treats it
+    // as a brand-new file and fires a bogus pending diff.
+    const renameDisposable = vscode.workspace.onDidRenameFiles((event) => {
+      for (const { oldUri, newUri } of event.files) {
+        const oldPath = this.normalizePath(oldUri.fsPath);
+        const newPath = this.normalizePath(newUri.fsPath);
+        const baseline = this.snapshots.get(oldPath);
+        if (baseline !== undefined) {
+          this.snapshots.set(newPath, baseline);
+        }
+        // Suppress fs.watch follow-up events for both paths briefly.
+        const now = Date.now();
+        this.recentlyRenamed.set(newPath, now);
+        this.recentlyRenamed.set(oldPath, now);
+      }
+    });
+    this.disposables.push(renameDisposable);
   }
 
   private watchWorkspaceFolders(): void {
@@ -104,9 +126,18 @@ export class WorkspaceWatcher {
       return;
     }
 
+    const now = Date.now();
+
+    // 0. Skip if this path was just involved in a VS Code rename. The fs
+    // watcher fires a delayed create event for the new location even though
+    // nothing actually changed — we only need to honor the renamed baseline.
+    const renameTime = this.recentlyRenamed.get(absPath) ?? 0;
+    if (now - renameTime < 3000) {
+      return;
+    }
+
     // 1. Check whether this file was just saved by VS Code itself
     const lastVsCodeSave = this.savedFilesByVsCode.get(absPath) ?? 0;
-    const now = Date.now();
     if (now - lastVsCodeSave < 2000) {
       // Skip — this write came from the VS Code editor itself
       return;
