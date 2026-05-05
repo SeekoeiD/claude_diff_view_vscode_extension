@@ -1,12 +1,13 @@
 /**
  * diffFileDecorationProvider.ts
  *
- * Decorates files in the explorer that have a pending AI CLI diff,
- * mirroring the way Git surfaces modified files: a colored badge on the
- * file itself, with the color propagating up to ancestor folders so the
- * user can spot pending changes at any level of nesting.
+ * Decorates files in the explorer that have a pending AI CLI diff and tints
+ * every ancestor folder so changes are visible at any level of nesting.
+ * Mirrors the way Git surfaces modified files (file-level badge, parent-folder
+ * color tint, no badge on folders).
  */
 
+import * as path from 'path';
 import * as vscode from 'vscode';
 import { DiffManager } from './diffManager';
 
@@ -16,45 +17,69 @@ export class DiffFileDecorationProvider implements vscode.FileDecorationProvider
 
   /** Normalized fsPaths of files with a pending diff. */
   private pending = new Set<string>();
+  /** Cached set of ancestor folder paths that contain at least one pending file. */
+  private pendingAncestors = new Set<string>();
 
   constructor(private readonly diffManager: DiffManager) {
     this.refresh();
     diffManager.onDidChangeDiffs(() => this.refresh());
   }
 
-  /**
-   * Re-read the pending set from the DiffManager and notify VS Code about
-   * any URIs whose decoration may have changed.
-   */
   private refresh(): void {
     const next = new Set(
       this.diffManager.getPendingFiles().map(p => this.normalize(p))
     );
+    const nextAncestors = this.computeAncestors(next);
 
-    const changed: vscode.Uri[] = [];
-    for (const p of this.pending) {
-      if (!next.has(p)) { changed.push(vscode.Uri.file(p)); }
-    }
-    for (const p of next) {
-      if (!this.pending.has(p)) { changed.push(vscode.Uri.file(p)); }
-    }
+    // Union of every URI whose decoration may have flipped: files that
+    // entered or left the pending set, plus folders that gained or lost
+    // a pending descendant.
+    const changed = new Set<string>();
+    for (const p of this.pending) { if (!next.has(p)) { changed.add(p); } }
+    for (const p of next) { if (!this.pending.has(p)) { changed.add(p); } }
+    for (const p of this.pendingAncestors) { if (!nextAncestors.has(p)) { changed.add(p); } }
+    for (const p of nextAncestors) { if (!this.pendingAncestors.has(p)) { changed.add(p); } }
 
     this.pending = next;
-    if (changed.length > 0) {
-      this._onDidChange.fire(changed);
+    this.pendingAncestors = nextAncestors;
+
+    if (changed.size > 0) {
+      this._onDidChange.fire(Array.from(changed, p => vscode.Uri.file(p)));
     }
+  }
+
+  private computeAncestors(files: Set<string>): Set<string> {
+    const ancestors = new Set<string>();
+    for (const file of files) {
+      let parent = path.dirname(file);
+      while (parent && parent !== path.dirname(parent)) {
+        ancestors.add(parent);
+        parent = path.dirname(parent);
+      }
+    }
+    return ancestors;
   }
 
   provideFileDecoration(uri: vscode.Uri): vscode.FileDecoration | undefined {
     if (uri.scheme !== 'file') { return undefined; }
-    if (!this.pending.has(this.normalize(uri.fsPath))) { return undefined; }
+    const fsPath = this.normalize(uri.fsPath);
 
-    return {
-      badge: '●',
-      tooltip: 'AI CLI Diff: pending change',
-      color: new vscode.ThemeColor('aiCliDiffView.pendingFileForeground'),
-      propagate: true,
-    };
+    if (this.pending.has(fsPath)) {
+      return {
+        badge: '●',
+        tooltip: 'AI CLI Diff: pending change',
+        color: new vscode.ThemeColor('aiCliDiffView.pendingFileForeground'),
+      };
+    }
+
+    if (this.pendingAncestors.has(fsPath)) {
+      return {
+        tooltip: 'AI CLI Diff: contains pending change',
+        color: new vscode.ThemeColor('aiCliDiffView.pendingFileForeground'),
+      };
+    }
+
+    return undefined;
   }
 
   private normalize(filePath: string): string {
