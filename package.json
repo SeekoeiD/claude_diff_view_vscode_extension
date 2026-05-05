@@ -138,7 +138,18 @@
           "group": "navigation@2"
         }
       ]
-    }
+    },
+    "colors": [
+      {
+        "id": "aiCliDiffView.pendingFileForeground",
+        "description": "Color of files and ancestor folders that contain an AI CLI Diff pending change.",
+        "defaults": {
+          "dark": "#3794FF",
+          "light": "#0066BF",
+          "highContrast": "#3794FF"
+        }
+      }
+    ]
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",

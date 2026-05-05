@@ -8,6 +8,7 @@ import { HunkCodeLensProvider } from './diff/hunkCodeLensProvider';
 import { registerAllCommands } from './commands/commandsRegistry';
 import { NavigationManager } from './diff/navigationManager';
 import { NavBarPanel } from './views/navBarPanel';
+import { DiffFileDecorationProvider } from './diff/diffFileDecorationProvider';
 
 export function activate(context: vscode.ExtensionContext): void {
   // CodeLens buttons (Accept/Revert hunk) are suppressed in diff editors by default.
@@ -50,6 +51,11 @@ export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
     vscode.languages.registerCodeLensProvider({ scheme: 'file' }, codeLensProvider),
     diffManager.onDidChangeDiffs(() => codeLensProvider.refresh())
+  );
+
+  const fileDecorationProvider = new DiffFileDecorationProvider(diffManager);
+  context.subscriptions.push(
+    vscode.window.registerFileDecorationProvider(fileDecorationProvider)
   );
 
   fsHookWatcher.start();
