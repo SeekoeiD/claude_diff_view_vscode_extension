@@ -1,8 +1,8 @@
 /**
  * decorationManager.ts
  *
- * Manages TextEditorDecorationType instances and the rendering of decorations
- * (added lines highlight, removed lines ghost text, gutter icons) onto the editor.
+ * Quản lý TextEditorDecorationType và việc render decoration
+ * (added lines highlight, removed lines ghost text, gutter icons) lên editor.
  */
 
 import * as vscode from 'vscode';
@@ -11,7 +11,7 @@ import { Hunk } from './hunkCalculator';
 export class DecorationManager {
   private readonly addedLineDecor: vscode.TextEditorDecorationType;
   private readonly removedLineDecor: vscode.TextEditorDecorationType;
-  /** Kept for compatibility — no real icon used since we have CodeLens */
+  /** Giữ lại để tương thích — không dùng icon thật vì đã có CodeLens */
   private readonly acceptGutterDecor: vscode.TextEditorDecorationType;
   private readonly revertGutterDecor: vscode.TextEditorDecorationType;
   private readonly navigationBarDecor: vscode.TextEditorDecorationType;
@@ -19,25 +19,24 @@ export class DecorationManager {
   constructor() {
     this.addedLineDecor = vscode.window.createTextEditorDecorationType({
       isWholeLine: true,
-      backgroundColor: 'rgba(46, 160, 67, 0.15)', // soft pastel green instead of a strong blue
+      backgroundColor: 'rgba(46, 160, 67, 0.15)', // màu xanh lá pastel mờ thay vì xanh dương đậm
       overviewRulerColor: new vscode.ThemeColor('editorOverviewRuler.addedForeground'),
       overviewRulerLane: vscode.OverviewRulerLane.Right,
     });
 
     this.removedLineDecor = vscode.window.createTextEditorDecorationType({
-      // Don't use isWholeLine / backgroundColor here — it would paint the new
-      // line of text red. The background color is applied only to the trailing
-      // ghost text block.
+      // Không dùng isWholeLine / backgroundColor ở đây vì sẽ tô đỏ cả dòng text mới.
+      // Màu nền chỉ được áp dụng lên ghost text block phía sau.
       overviewRulerColor: new vscode.ThemeColor('editorOverviewRuler.deletedForeground'),
       overviewRulerLane: vscode.OverviewRulerLane.Left,
     });
 
-    // Gutter decorations — kept empty since CodeLens already covers this
+    // Gutter decorations — giữ trống vì CodeLens đã cover
     this.acceptGutterDecor = vscode.window.createTextEditorDecorationType({});
     this.revertGutterDecor = vscode.window.createTextEditorDecorationType({});
 
-    // Floating navigation bar at the bottom of the editor.
-    // Uses aggressive CSS position: fixed to pin it to the bottom of the view.
+    // Thanh điều hướng nổi ở cuối editor. 
+    // Dùng CSS position: fixed cực đoan để đẩy nó dính xuống dưới cùng của view.
     this.navigationBarDecor = vscode.window.createTextEditorDecorationType({
       after: {
         margin: '0 0 0 0',
@@ -54,7 +53,7 @@ export class DecorationManager {
   }
 
   /**
-   * Applies decorations to a specific editor based on the given hunks list.
+   * Áp dụng decorations lên một editor cụ thể dựa trên danh sách hunks.
    */
 
   applyToEditor(editor: vscode.TextEditor, hunks: Hunk[]): void {
@@ -65,7 +64,7 @@ export class DecorationManager {
     const navigationBarRanges: vscode.DecorationOptions[] = [];
 
     for (const hunk of hunks) {
-      // Added line — paint the background green
+      // Dòng được thêm — tô nền xanh
       for (const addedLine of hunk.addedLines) {
         const lineIdx = addedLine.modifiedLineIndex;
         addedRanges.push(
@@ -76,11 +75,11 @@ export class DecorationManager {
         );
       }
 
-      // Removed line — render ghost text at the end of the anchor line
+      // Dòng bị xóa — hiển thị ghost text ở cuối dòng anchor
       if (hunk.removedLines.length > 0) {
         const anchorLine = Math.max(0, hunk.modifiedStart);
         const removedText =
-          '   \u25c0 removed: ' +
+          '   \u25c0 x\u00f3a: ' +
           hunk.removedLines.map(r => r.text.trim()).join(' \u21b5 ');
         removedRanges.push({
           range: new vscode.Range(
@@ -90,8 +89,8 @@ export class DecorationManager {
           renderOptions: {
             after: {
               contentText: removedText,
-              color: 'rgba(248, 81, 73, 0.6)', // soft red — gentler than editorError.foreground
-              textDecoration: 'line-through; opacity: 0.5;', // reduce opacity a touch more
+              color: 'rgba(248, 81, 73, 0.6)', // đỏ nhạt, dễ chịu hơn thay vì editorError.foreground
+              textDecoration: 'line-through; opacity: 0.5;', // giảm opacity mờ thêm 1 chút
               fontStyle: 'italic',
               margin: '0 0 0 20px',
             },
@@ -99,7 +98,7 @@ export class DecorationManager {
         });
       }
 
-      // Gutter hover — attached to the first line of the hunk
+      // Gutter hover — gắn vào dòng đầu tiên của hunk
       const gutterLine = hunk.modifiedStart;
       const gutterRange = new vscode.Range(
         new vscode.Position(gutterLine, 0),
@@ -129,10 +128,10 @@ export class DecorationManager {
   private renderNavigationBar(editor: vscode.TextEditor, info: any, ranges: vscode.DecorationOptions[]): void {
     const { currentIdx, total, prevName, nextName } = info;
     
-    // Build an HTML-like string using aggressive CSS inside textDecoration
+    // Tạo HTML-like string sử dụng CSS cực đoan trong textDecoration
     const navContent = ` < Alt+H ${prevName}  |  View ${total} edited files (${currentIdx}/${total})  |  ${nextName} Alt+L > `;
-
-    // Use the last visible line as the decoration anchor
+    
+    // Dùng dòng cuối cùng có thể nhìn thấy để gắn decoration
     const lastLine = editor.document.lineCount - 1;
     const range = new vscode.Range(lastLine, 0, lastLine, 0);
 
@@ -172,7 +171,7 @@ export class DecorationManager {
   }
 
   /**
-   * Removes all decorations from an editor.
+   * Xóa tất cả decorations khỏi một editor.
    */
   clearEditor(editor: vscode.TextEditor): void {
     editor.setDecorations(this.addedLineDecor, []);
@@ -182,7 +181,7 @@ export class DecorationManager {
     editor.setDecorations(this.navigationBarDecor, []);
   }
 
-  /** Dispose all decoration types on deactivate. */
+  /** Dispose tất cả decoration types khi deactivate. */
   disposeAll(): void {
     this.addedLineDecor.dispose();
     this.removedLineDecor.dispose();

@@ -1,34 +1,34 @@
 /**
  * hunkCalculator.ts
  *
- * Computes the "hunks" of change between two file-content strings.
- * Uses a simplified line-based Myers diff algorithm.
+ * Tính toán các "hunks" thay đổi giữa 2 chuỗi nội dung file.
+ * Dùng thuật toán Myers diff (đơn giản hóa) theo từng dòng.
  */
 
 export interface Hunk {
-  /** Unique id for each hunk (used for lookup during accept/revert) */
+  /** ID duy nhất cho mỗi hunk (dùng để tra cứu khi accept/revert) */
   id: string;
-  /** Start line in the MODIFIED content (0-indexed); anchors the gutter icon */
+  /** Dòng bắt đầu trong nội dung SỬA ĐỔI (0-indexed), nơi gắn gutter icon */
   modifiedStart: number;
-  /** Start line in the ORIGINAL content (0-indexed); where the patch begins */
+  /** Dòng bắt đầu trong nội dung GỐC (0-indexed), nơi bắt đầu patch */
   originalStart: number;
-  /** Lines that were REMOVED (from the original content) */
+  /** Các dòng bị XÓA (nội dung gốc) */
   removedLines: RemovedLine[];
-  /** Lines that were ADDED (in the new content) */
+  /** Các dòng được THÊM (nội dung mới) */
   addedLines: AddedLine[];
 }
 
 export interface RemovedLine {
-  /** Text of the removed line */
+  /** Nội dung dòng bị xóa */
   text: string;
-  /** Line position in the original file (0-indexed) */
+  /** Vị trí dòng trong file gốc (0-indexed) */
   originalLineIndex: number;
 }
 
 export interface AddedLine {
-  /** Text of the added line */
+  /** Nội dung dòng được thêm */
   text: string;
-  /** Line position in the modified file (0-indexed) */
+  /** Vị trí dòng trong file sửa đổi (0-indexed) */
   modifiedLineIndex: number;
 }
 
@@ -38,14 +38,14 @@ type DiffOp =
   | { type: 'insert'; text: string; modIdx: number; origIdx: number };
 
 /**
- * Computes an LCS-based diff between two arrays of lines.
- * Returns the DiffOp array in order.
+ * Tính LCS-based diff giữa 2 mảng dòng.
+ * Trả về mảng DiffOp theo thứ tự.
  */
 function computeLineDiff(origLines: string[], modLines: string[]): DiffOp[] {
   const m = origLines.length;
   const n = modLines.length;
 
-  // LCS table: dp[i][j] = length of LCS of origLines[0..i-1] and modLines[0..j-1]
+  // Bảng LCS: dp[i][j] = độ dài LCS của origLines[0..i-1] và modLines[0..j-1]
   const dp: number[][] = Array.from({ length: m + 1 }, () =>
     new Array<number>(n + 1).fill(0)
   );
@@ -60,7 +60,7 @@ function computeLineDiff(origLines: string[], modLines: string[]): DiffOp[] {
     }
   }
 
-  // Backtrack to produce the DiffOp list
+  // Truy vết để tạo danh sách DiffOp
   const ops: DiffOp[] = [];
   let i = m;
   let j = n;
@@ -89,11 +89,11 @@ function makeHunkId(): string {
 }
 
 /**
- * Computes the list of Hunks between the original and modified file contents.
+ * Tính danh sách Hunk từ nội dung file gốc và file đã sửa đổi.
  *
- * @param originalContent - Content before Claude's edit
- * @param modifiedContent - Content after Claude's edit
- * @returns Array of Hunks; each Hunk represents one contiguous block of change
+ * @param originalContent - Nội dung trước khi Claude sửa
+ * @param modifiedContent - Nội dung sau khi Claude sửa
+ * @returns Mảng Hunk, mỗi Hunk đại diện cho một khối thay đổi liên tiếp
  */
 export function calculateHunks(
   originalContent: string,
@@ -109,7 +109,7 @@ export function calculateHunks(
 
   for (const op of ops) {
     if (op.type === 'equal') {
-      // Close the current hunk if there is one
+      // Kết thúc hunk hiện tại nếu có
       if (currentHunk) {
         hunks.push(currentHunk);
         currentHunk = null;
@@ -141,7 +141,7 @@ export function calculateHunks(
           addedLines: [],
         };
       }
-      // Anchor modifiedStart at the first inserted line
+      // Ghi nhận modifiedStart theo dòng insert đầu tiên
       if (currentHunk.addedLines.length === 0) {
         currentHunk.modifiedStart = op.modIdx;
       }
@@ -152,12 +152,12 @@ export function calculateHunks(
     }
   }
 
-  // Push the final hunk if any remains
+  // Đẩy hunk cuối cùng nếu còn
   if (currentHunk) {
     hunks.push(currentHunk);
   }
 
-  // For pure insert/delete hunks, adjust the offset compensation
+  // Với các hunk thuần insert/delete, cập nhật bù trừ offset
   let origOffset = 0;
   for (const hunk of hunks) {
     if (hunk.addedLines.length === 0 && hunk.removedLines.length > 0) {
