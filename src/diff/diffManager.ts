@@ -206,10 +206,10 @@ export class DiffManager {
       this.renderer.show(absPath, newSnapshot, modifiedContent);
     }
 
-    // If no hunks remain, automatically clean up and close the Diff Editor
+    // If no hunks remain, finalize this file and hop to the next pending one.
     const remainingHunks = this.renderer.getHunks(absPath);
     if (remainingHunks.length === 0) {
-      await this.cleanup(absPath);
+      await this.cleanupAndAdvance(absPath);
     }
 
     this._onDidChangeDiffs.fire();
@@ -221,9 +221,9 @@ export class DiffManager {
     const shouldDelete = await this.shouldDeleteRejectedNewFile(absPath);
     if (shouldDelete) {
       await this.deleteRejectedNewFile(absPath);
-      await this.cleanup(absPath, { openNormalTextDocument: false });
+      await this.cleanupAndAdvance(absPath, { openNormalTextDocumentIfLast: false });
     } else if (isDone) {
-      await this.cleanup(absPath);
+      await this.cleanupAndAdvance(absPath);
     }
     this._onDidChangeDiffs.fire();
   }
@@ -233,25 +233,8 @@ export class DiffManager {
    */
   async accept(filePath: string): Promise<void> {
     const absPath = normalizePath(filePath);
-
-    // Capture the pending order before cleanup so we know what the "next file" is.
-    const pendingBefore = this.getPendingFiles();
-    const currentIdx = pendingBefore.findIndex(p => normalizePath(p) === absPath);
-    const hasNext = pendingBefore.length > 1 && currentIdx !== -1;
-    const nextTarget = hasNext
-      ? pendingBefore[(currentIdx + 1) % pendingBefore.length]!
-      : undefined;
-
     this.renderer.acceptAll(absPath);
-
-    // If other pending files remain, avoid "jumping back to a regular file" after closing the diff;
-    // instead, switch to the next file's diff so the user can continue reviewing.
-    await this.cleanup(absPath, { openNormalTextDocument: !nextTarget });
-
-    if (nextTarget) {
-      await this.openDiff(nextTarget);
-    }
-
+    await this.cleanupAndAdvance(absPath);
     this._onDidChangeDiffs.fire();
   }
 
@@ -271,7 +254,7 @@ export class DiffManager {
     if (shouldDelete) {
       await this.deleteRejectedNewFile(absPath);
     }
-    await this.cleanup(absPath, { openNormalTextDocument: !shouldDelete });
+    await this.cleanupAndAdvance(absPath, { openNormalTextDocumentIfLast: !shouldDelete });
     this._onDidChangeDiffs.fire();
   }
 
@@ -336,6 +319,35 @@ export class DiffManager {
     this.renderer.disposeAll();
     this.snapshots.clear();
     this.snapshotQueries.clear();
+  }
+
+  /**
+   * Finalize a file (clear its snapshot and close the diff tab) and, if any
+   * other pending files remain, automatically open the next one for review.
+   *
+   * `openNormalTextDocumentIfLast` controls cleanup's behavior when this is
+   * the last pending file: true keeps the just-resolved file open as a
+   * regular editor, false skips reopening (e.g., the file was deleted).
+   */
+  private async cleanupAndAdvance(
+    absPath: string,
+    opts?: { openNormalTextDocumentIfLast?: boolean }
+  ): Promise<string | undefined> {
+    const openNormalIfLast = opts?.openNormalTextDocumentIfLast ?? true;
+    const pendingBefore = this.getPendingFiles();
+    const nextTarget = this.pickNextPending(absPath, pendingBefore);
+    await this.cleanup(absPath, { openNormalTextDocument: !nextTarget && openNormalIfLast });
+    if (nextTarget) {
+      await this.openDiff(nextTarget);
+    }
+    return nextTarget;
+  }
+
+  /** Pick the next pending file after `absPath` (wrapping), or undefined if none. */
+  private pickNextPending(absPath: string, pendingBefore: string[]): string | undefined {
+    const currentIdx = pendingBefore.findIndex(p => normalizePath(p) === absPath);
+    if (pendingBefore.length <= 1 || currentIdx === -1) { return undefined; }
+    return pendingBefore[(currentIdx + 1) % pendingBefore.length];
   }
 
   private async cleanup(
