@@ -7,14 +7,16 @@
 
 import * as vscode from 'vscode';
 import { Hunk } from './hunkCalculator';
+import { InsetManager } from './insetManager';
 
 export class DecorationManager {
   private readonly addedLineDecor: vscode.TextEditorDecorationType;
-  private readonly removedLineDecor: vscode.TextEditorDecorationType;
   /** Kept for compatibility — no real icon used since we have CodeLens */
   private readonly acceptGutterDecor: vscode.TextEditorDecorationType;
   private readonly revertGutterDecor: vscode.TextEditorDecorationType;
   private readonly navigationBarDecor: vscode.TextEditorDecorationType;
+  /** Renders removed-line phantom rows via the editorInsets proposed API. */
+  private readonly insets = new InsetManager();
 
   constructor() {
     this.addedLineDecor = vscode.window.createTextEditorDecorationType({
@@ -22,14 +24,6 @@ export class DecorationManager {
       backgroundColor: 'rgba(46, 160, 67, 0.15)', // soft pastel green instead of a strong blue
       overviewRulerColor: new vscode.ThemeColor('editorOverviewRuler.addedForeground'),
       overviewRulerLane: vscode.OverviewRulerLane.Right,
-    });
-
-    this.removedLineDecor = vscode.window.createTextEditorDecorationType({
-      // Don't use isWholeLine / backgroundColor here — it would paint the new
-      // line of text red. The background color is applied only to the trailing
-      // ghost text block.
-      overviewRulerColor: new vscode.ThemeColor('editorOverviewRuler.deletedForeground'),
-      overviewRulerLane: vscode.OverviewRulerLane.Left,
     });
 
     // Gutter decorations — kept empty since CodeLens already covers this
@@ -57,12 +51,10 @@ export class DecorationManager {
    * Applies decorations to a specific editor based on the given hunks list.
    */
 
-  applyToEditor(editor: vscode.TextEditor, hunks: Hunk[]): void {
+  applyToEditor(editor: vscode.TextEditor, hunks: Hunk[], filePath: string): void {
     const addedRanges: vscode.Range[] = [];
-    const removedRanges: vscode.DecorationOptions[] = [];
     const acceptGutterRanges: vscode.DecorationOptions[] = [];
     const revertGutterRanges: vscode.DecorationOptions[] = [];
-    const navigationBarRanges: vscode.DecorationOptions[] = [];
 
     for (const hunk of hunks) {
       // Added line — paint the background green
@@ -74,29 +66,6 @@ export class DecorationManager {
             new vscode.Position(lineIdx, Number.MAX_SAFE_INTEGER)
           )
         );
-      }
-
-      // Removed line — render ghost text at the end of the anchor line
-      if (hunk.removedLines.length > 0) {
-        const anchorLine = Math.max(0, hunk.modifiedStart);
-        const removedText =
-          '   ◀ removed: ' +
-          hunk.removedLines.map(r => r.text.trim()).join(' ↵ ');
-        removedRanges.push({
-          range: new vscode.Range(
-            new vscode.Position(anchorLine, Number.MAX_SAFE_INTEGER),
-            new vscode.Position(anchorLine, Number.MAX_SAFE_INTEGER)
-          ),
-          renderOptions: {
-            after: {
-              contentText: removedText,
-              color: 'rgba(248, 81, 73, 0.6)', // soft red — gentler than editorError.foreground
-              textDecoration: 'line-through; opacity: 0.5;', // reduce opacity a touch more
-              fontStyle: 'italic',
-              margin: '0 0 0 20px',
-            },
-          },
-        });
       }
 
       // Gutter hover — attached to the first line of the hunk
@@ -120,10 +89,13 @@ export class DecorationManager {
     }
 
     editor.setDecorations(this.addedLineDecor, addedRanges);
-    editor.setDecorations(this.removedLineDecor, removedRanges);
     editor.setDecorations(this.acceptGutterDecor, acceptGutterRanges);
     editor.setDecorations(this.revertGutterDecor, revertGutterRanges);
     editor.setDecorations(this.navigationBarDecor, []);
+
+    // Removed lines + per-hunk Accept/Revert controls render as real phantom
+    // rows via the editorInsets webview API.
+    this.insets.applyToEditor(editor, hunks, filePath);
   }
 
   private renderNavigationBar(editor: vscode.TextEditor, info: any, ranges: vscode.DecorationOptions[]): void {
@@ -176,18 +148,18 @@ export class DecorationManager {
    */
   clearEditor(editor: vscode.TextEditor): void {
     editor.setDecorations(this.addedLineDecor, []);
-    editor.setDecorations(this.removedLineDecor, []);
     editor.setDecorations(this.acceptGutterDecor, []);
     editor.setDecorations(this.revertGutterDecor, []);
     editor.setDecorations(this.navigationBarDecor, []);
+    this.insets.clearEditor(editor);
   }
 
   /** Dispose all decoration types on deactivate. */
   disposeAll(): void {
     this.addedLineDecor.dispose();
-    this.removedLineDecor.dispose();
     this.acceptGutterDecor.dispose();
     this.revertGutterDecor.dispose();
     this.navigationBarDecor.dispose();
+    this.insets.disposeAll();
   }
 }

@@ -1,19 +1,18 @@
 {
   "name": "ai-cli-diff-view",
   "displayName": "AI CLI diff view",
-  "description": "Inline diff review for AI CLI edits, best with Claude, Codex, and Qwen",
+  "description": "Inline diff review for Claude Code edits inside VS Code",
   "version": "1.0.9",
   "publisher": "SeekoeiD",
-  "_TODO_publisher": "TODO: revert publisher to 'konan1947' before opening any PR upstream; this is set to 'SeekoeiD' only for local sideload installs.",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/konan-1947/claude_diff_view_vscode_extension.git"
+    "url": "https://github.com/SeekoeiD/claude_diff_view_vscode_extension.git"
   },
   "bugs": {
-    "url": "https://github.com/konan-1947/claude_diff_view_vscode_extension/issues"
+    "url": "https://github.com/SeekoeiD/claude_diff_view_vscode_extension/issues"
   },
-  "homepage": "https://github.com/konan-1947/claude_diff_view_vscode_extension#readme",
+  "homepage": "https://github.com/SeekoeiD/claude_diff_view_vscode_extension#readme",
   "icon": "icon.png",
   "engines": {
     "vscode": "^1.85.0"
@@ -25,6 +24,9 @@
     "onStartupFinished"
   ],
   "main": "./out/extension.js",
+  "enabledApiProposals": [
+    "editorInsets"
+  ],
   "contributes": {
     "viewsContainers": {
       "activitybar": [
@@ -79,11 +81,6 @@
       {
         "command": "ai-cli-diff-view.revertHunk",
         "title": "AI CLI Diff: Revert Hunk"
-      },
-      {
-        "command": "ai-cli-diff-view.installHooks",
-        "title": "AI CLI Diff: Install Claude CLI Hooks",
-        "icon": "$(plug)"
       },
       {
         "command": "ai-cli-diff-view.openPendingFile",

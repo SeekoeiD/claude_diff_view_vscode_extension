@@ -1,8 +1,6 @@
-import * as fs from 'fs';
 import * as vscode from 'vscode';
 import * as path from 'path';
 import { DiffManager } from '../diff/diffManager';
-import { detectOurClaudeHooks, hooksFullyActive } from '../claude/hookInstallDetect';
 
 type SessionState = 'idle' | 'running' | 'error';
 
@@ -28,7 +26,6 @@ export class SessionPanelProvider implements vscode.WebviewViewProvider {
     this.diffDisposable.dispose();
   }
 
-  /** Re-read hook install state from disk (e.g. after installHooks). */
   refresh(): void {
     this.render();
   }
@@ -65,8 +62,6 @@ export class SessionPanelProvider implements vscode.WebviewViewProvider {
     webviewView.webview.onDidReceiveMessage((msg: { command?: string; path?: string }) => {
       if (msg.command === 'openFile' && msg.path && typeof msg.path === 'string') {
         void vscode.commands.executeCommand('ai-cli-diff-view.openPendingFile', msg.path);
-      } else if (msg.command === 'installHooks') {
-        void vscode.commands.executeCommand('ai-cli-diff-view.installHooks');
       } else if (msg.command === 'acceptAllChanges') {
         void vscode.commands.executeCommand('ai-cli-diff-view.acceptAllChanges');
       } else if (msg.command === 'revertAllChanges') {
@@ -132,37 +127,6 @@ export class SessionPanelProvider implements vscode.WebviewViewProvider {
           Reject All
         </button>
       </div>`;
-
-    const hookDet = detectOurClaudeHooks(this.context.extensionUri.fsPath);
-    const hooksOk = hooksFullyActive(hookDet);
-
-    let extVersion = '';
-    try {
-      const pkgJson = JSON.parse(
-        fs.readFileSync(path.join(this.context.extensionUri.fsPath, 'package.json'), 'utf8')
-      ) as { version?: string };
-      extVersion = pkgJson.version ?? '';
-    } catch {
-      // ignore
-    }
-    const versionTag = extVersion
-      ? `<span class="hook-version">v${escapeHtml(extVersion)}</span>`
-      : '';
-
-    let hookStatusHtml = '';
-    if (hooksOk) {
-      hookStatusHtml = `<div class="hook-status hook-ok"><span class="hook-status-text">CLI hooks: active</span>${versionTag}</div>`;
-    } else if (!hookDet.settingsFound) {
-      hookStatusHtml = `<div class="hook-status hook-no"><span class="hook-status-text">CLI hooks: <strong>not installed</strong> (no Claude settings file yet)</span>${versionTag}</div>`;
-    } else if (hookDet.preHookFound || hookDet.postHookFound) {
-      hookStatusHtml = `<div class="hook-status hook-warn"><span class="hook-status-text">CLI hooks: <strong>incomplete</strong> — pre: ${
-        hookDet.preHookFound ? 'OK' : 'missing'
-      }, post: ${hookDet.postHookFound ? 'OK' : 'missing'}</span>${versionTag}</div>`;
-    } else {
-      hookStatusHtml = `<div class="hook-status hook-no"><span class="hook-status-text">CLI hooks: <strong>not installed</strong> for this extension</span>${versionTag}</div>`;
-    }
-
-    const installLabel = hooksOk ? 'Reinstall / update CLI hooks' : 'Install CLI hooks';
 
     return `<!DOCTYPE html>
 <html lang="en">
@@ -435,13 +399,6 @@ export class SessionPanelProvider implements vscode.WebviewViewProvider {
       ${pendingBlock}
     </div>
   </div>
-  <div class="bottom-stick">
-    <button type="button" class="btn-install" id="btn-install" title="Write hooks to ~/.claude/settings.json">
-      ${escapeHtml(installLabel)}
-    </button>
-    <p class="footer-note">Best with Claude, Codex, and Qwen. Hook install currently targets Claude.</p>
-    ${hookStatusHtml}
-  </div>
   <script>
     const vscode = acquireVsCodeApi();
     (function bindFileTree() {
@@ -454,9 +411,6 @@ export class SessionPanelProvider implements vscode.WebviewViewProvider {
         });
       });
     })();
-    document.getElementById('btn-install').addEventListener('click', function () {
-      vscode.postMessage({ command: 'installHooks' });
-    });
     var btnAcceptAll = document.getElementById('btn-accept-all');
     if (btnAcceptAll) {
       btnAcceptAll.addEventListener('click', function () {

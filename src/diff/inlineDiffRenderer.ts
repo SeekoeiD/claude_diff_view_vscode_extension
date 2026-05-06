@@ -227,7 +227,7 @@ export class InlineDiffRenderer {
     for (const editor of vscode.window.visibleTextEditors) {
       if (this.normalizePath(editor.document.uri.fsPath) === normalizedPath) {
         const isDiffView = this.isEditorInDiffView(editor);
-        this.decorations.applyToEditor(editor, isDiffView ? [] : state.hunks);
+        this.decorations.applyToEditor(editor, isDiffView ? [] : state.hunks, filePath);
       }
     }
   }

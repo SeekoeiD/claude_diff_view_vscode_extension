@@ -160,7 +160,9 @@ export class DiffManager {
   }
 
   /**
-   * Inject a snapshot from outside (used by HookWatcher or WorkspaceWatcher).
+   * Inject a snapshot from outside (used by the in-IDE Claude runner before it
+   * issues a Write/Edit/MultiEdit tool call, and by WorkspaceWatcher when an
+   * out-of-band write is detected).
    */
   loadSnapshot(filePath: string, content: string, fileExistedBefore = true): void {
     const absPath = normalizePath(filePath);

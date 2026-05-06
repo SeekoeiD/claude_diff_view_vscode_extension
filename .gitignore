@@ -16,3 +16,6 @@ npm-debug.log*
 Thumbs.db
 
 .claude/
+
+text1.txt
+text2.txt

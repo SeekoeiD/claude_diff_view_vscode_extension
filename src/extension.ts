@@ -1,27 +1,17 @@
 import * as vscode from 'vscode';
 import { DiffManager } from './diff/diffManager';
 import { IAiRunner } from './claude/aiRunner';
-import { HookWatcher } from './watcher/hookWatcher';
 import { WorkspaceWatcher } from './watcher/workspaceWatcher';
 import { SessionPanelProvider } from './views/sessionPanel';
-import { HunkCodeLensProvider } from './diff/hunkCodeLensProvider';
 import { registerAllCommands } from './commands/commandsRegistry';
 import { NavigationManager } from './diff/navigationManager';
 import { NavBarPanel } from './views/navBarPanel';
 import { DiffFileDecorationProvider } from './diff/diffFileDecorationProvider';
 
 export function activate(context: vscode.ExtensionContext): void {
-  // CodeLens buttons (Accept/Revert hunk) are suppressed in diff editors by default.
-  // Enable at workspace scope so they appear in the right (modified) pane.
-  const editorConfig = vscode.workspace.getConfiguration();
-  if (editorConfig.get<boolean>('diffEditor.codeLens') !== true) {
-    void editorConfig.update('diffEditor.codeLens', true, vscode.ConfigurationTarget.Global);
-  }
-
   const diffManager       = new DiffManager(context);
   const sessionPanel      = new SessionPanelProvider(diffManager, context);
   const workspaceWatcher  = new WorkspaceWatcher(diffManager);
-  const fsHookWatcher     = new HookWatcher(diffManager);
   const navigationManager = new NavigationManager(diffManager);
 
   diffManager.renderer.setNavigationManager(navigationManager);
@@ -38,7 +28,6 @@ export function activate(context: vscode.ExtensionContext): void {
 
   context.subscriptions.push(
     { dispose: () => diffManager.disposeAll() },
-    { dispose: () => fsHookWatcher.dispose() },
     { dispose: () => workspaceWatcher.dispose() },
     { dispose: () => sessionPanel.dispose() }
   );
@@ -47,18 +36,11 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.window.registerWebviewViewProvider(SessionPanelProvider.viewType, sessionPanel)
   );
 
-  const codeLensProvider = new HunkCodeLensProvider(diffManager);
-  context.subscriptions.push(
-    vscode.languages.registerCodeLensProvider({ scheme: 'file' }, codeLensProvider),
-    diffManager.onDidChangeDiffs(() => codeLensProvider.refresh())
-  );
-
   const fileDecorationProvider = new DiffFileDecorationProvider(diffManager);
   context.subscriptions.push(
     vscode.window.registerFileDecorationProvider(fileDecorationProvider)
   );
 
-  fsHookWatcher.start();
   workspaceWatcher.start();
 
   registerAllCommands({

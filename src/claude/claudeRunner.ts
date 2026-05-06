@@ -66,15 +66,6 @@ export class ClaudeRunner implements IAiRunner {
     return path.resolve(workingDir, filePath);
   }
 
-  getSettingsFilePath(): string {
-    const homeDir = process.env['USERPROFILE'] ?? process.env['HOME'] ?? '';
-    return path.join(homeDir, '.claude', 'settings.json');
-  }
-
-  getFileEditToolNames(): string[] {
-    return ['Write', 'Edit', 'MultiEdit'];
-  }
-
   /**
    * Finds the claude CLI executable. Tries PATH first, then the known
    * %USERPROFILE%\.local\bin install location.

@@ -1,11 +1,8 @@
 /**
  * aiRunner.ts
  *
- * Common interface for all AI CLI runners (Claude, ...).
- * Lets the extension work with multiple tools without changing core logic.
+ * Interface for the in-IDE Claude runner.
  */
-
-import { DiffManager } from '../diff/diffManager';
 
 export type StatusCallback = (
   status: 'running' | 'idle' | 'error',
@@ -28,16 +25,4 @@ export interface IAiRunner {
     onStatus: StatusCallback,
     onProgress?: ProgressCallback
   ): Promise<void>;
-
-  /**
-   * Returns the path to this tool's settings.json file.
-   * Used by the installHooks feature.
-   */
-  getSettingsFilePath(): string;
-
-  /**
-   * Returns the file-editing tool names this CLI uses.
-   * Used for the hook matcher.
-   */
-  getFileEditToolNames(): string[];
 }

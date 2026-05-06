@@ -4,9 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This Extension Does
 
-AI CLI diff view is a VS Code extension for reviewing AI CLI file edits inside VS Code.
-Best supported workflows: Claude, Codex, and Qwen.
-Built-in session launch and hook installation currently target Claude Code.
+AI CLI diff view is a VS Code extension for reviewing **Claude Code** edits as inline diffs inside the editor. Claude sessions are launched from inside VS Code via the built-in runner; the extension spawns the `claude` CLI, parses its `stream-json` output, snapshots files before each Write/Edit/MultiEdit tool call, and opens a per-file inline review with red phantom rows above green added lines and per-hunk Accept/Revert controls.
+
+A workspace file watcher provides a secondary detection path for out-of-band writes (e.g. you edit a file by hand) so the diff still surfaces inside the IDE without any external CLI hook integration.
+
+CLI hook installation and multi-agent (Codex/Qwen) support have been removed. The extension is VS Code IDE only and Claude only.
 
 ## Commands
 
@@ -23,35 +25,28 @@ npx vsce package
 - Press `F5` in VS Code to launch the Extension Development Host using `.vscode/launch.json`.
 - Reload the extension host after TypeScript recompiles.
 - There is currently no dedicated lint script and no test script in `package.json`.
-- There is currently no single-test command because the repository does not include a test runner setup yet.
 
 ## Architecture
 
 ### Runtime shape
 
-`src/extension.ts` is the entry point. On `onStartupFinished`, it creates the central `DiffManager`, both watcher paths, the session and navigation webviews, and the command registrations. It also force-enables `diffEditor.codeLens` globally so hunk CodeLens actions appear in VS Code's diff editor.
+`src/extension.ts` is the entry point. On `onStartupFinished`, it creates the central `DiffManager`, the session and navigation webviews, and the command registrations.
 
-The extension has one core responsibility: capture a before-image of a file, detect the after-image once an AI tool writes it, then open a reviewable VS Code diff while keeping enough per-file state to accept or reject hunks.
+The extension has one core responsibility: capture a before-image of a file, detect the after-image once Claude writes it, then render a reviewable inline diff while keeping enough per-file state to accept or reject hunks.
 
-### Two edit-detection pipelines
+### Edit-detection pipelines
 
-**Hook pipeline for external AI CLIs**
+There are two paths that can open a diff:
 
-This is the primary path for edits made outside the built-in runner.
-
-1. `hooks/pre-tool-hook.js` stores the pre-edit snapshot in the temp snapshot directory.
-2. `hooks/post-tool-hook.js` writes a JSON signal into the temp signal directory.
-3. `src/watcher/hookWatcher.ts` consumes the signal, ignores files outside the current workspace, loads the stored snapshot into `DiffManager`, and opens the diff.
-
-Hook installation is managed by the `ai-cli-diff-view.installHooks` command in `src/commands/commandsRegistry.ts`. It rewrites `~/.claude/settings.json` with `PreToolUse` and `PostToolUse` hook entries pointing at this extension's bundled hook scripts. `src/claude/hookInstallDetect.ts` reads the same settings file to drive the sidebar hook status.
-
-**Built-in Claude runner pipeline**
-
-The built-in session path is Claude-only right now.
+**Built-in Claude runner**
 
 1. `src/claude/runnerFactory.ts` detects whether `claude` is available on PATH.
 2. `src/claude/claudeRunner.ts` spawns `claude --output-format stream-json --verbose -p <prompt>`.
 3. While parsing the NDJSON stream, it snapshots files before `Write`/`Edit`/`MultiEdit` tool calls and opens diffs when tool results arrive.
+
+**Workspace watcher**
+
+`src/watcher/workspaceWatcher.ts` combines `onDidSaveTextDocument` events with an `fs.watch` over each workspace folder. It uses `src/watcher/fileSnapshotStore.ts` to track a per-file baseline so any out-of-band write (manual edit, external script, anything that isn't the in-IDE Claude runner) can still produce a reviewable diff. The watcher ignores excluded paths via `src/watcher/pathExclusions.ts`.
 
 ### Diff state model
 
@@ -60,11 +55,19 @@ The built-in session path is Claude-only right now.
 - the original-content snapshot map
 - the stable per-file query IDs used to reuse diff tabs
 - persistence in workspace state under `ai-cli-diff.snapshots`
-- the public accept/revert operations used by commands and CodeLens
+- the public accept/revert operations used by commands and inset buttons
 
-The left side of the diff is not a temp file. It is served through a `TextDocumentContentProvider` on the custom `ai-cli-diff` URI scheme, backed by the stored snapshot. The right side is the live workspace file.
+The left side of the diff is served through a `TextDocumentContentProvider` on the custom `ai-cli-diff` URI scheme, backed by the stored snapshot. The right side is the live workspace file.
 
-`src/diff/inlineDiffRenderer.ts` holds the per-file hunk state computed by `src/diff/hunkCalculator.ts`. It applies decorations, exposes hunk data to `src/diff/hunkCodeLensProvider.ts`, and updates navigation UI state.
+`src/diff/inlineDiffRenderer.ts` holds the per-file hunk state computed by `src/diff/hunkCalculator.ts`. It drives `DecorationManager` for added-line highlighting and `InsetManager` for the phantom red rows + Accept/Revert action bar.
+
+### Inline diff rendering
+
+`src/diff/decorationManager.ts` paints the green background on added lines and forwards each hunk to `InsetManager`.
+
+`src/diff/insetManager.ts` uses the proposed `editorInsets` API (`vscode.window.createWebviewTextEditorInset`) to render true phantom rows above the change. Each per-hunk inset is a small webview that contains the deleted lines (red) plus a final action row with `✓ Accept Hunk N/M` and `↶ Revert Hunk N/M` buttons. Button clicks post messages back to the extension and dispatch the existing `ai-cli-diff-view.acceptHunk` / `ai-cli-diff-view.revertHunk` commands.
+
+Because `editorInsets` is a proposed API, `package.json` declares `enabledApiProposals: ["editorInsets"]` and the typings live at `src/vscode.proposed.editorInsets.d.ts`. The extension can only run in an Extension Development Host (F5) or with `--enable-proposed-api SeekoeiD.ai-cli-diff-view`; the marketplace rejects published extensions that depend on proposed APIs.
 
 ### Review and resolution flow
 
@@ -75,19 +78,13 @@ Accept and revert are intentionally asymmetric:
 - Accepting a whole file clears pending state and closes the diff; if other files are still pending, navigation moves directly to the next one.
 - Reverting a whole file replaces the entire document with the original snapshot.
 
-When the last hunk for a file is resolved, `DiffManager.cleanup()` removes the snapshot, clears decorations, closes the diff tab, and optionally reopens the file as a normal editor while preserving cursor and scroll position.
-
-### Watchers and baseline tracking
-
-`src/watcher/workspaceWatcher.ts` is the fallback path for external writes that do not come through Claude hooks. It combines VS Code save events with a `FileSystemWatcher` so external processes can still trigger review diffs.
-
-`src/watcher/fileSnapshotStore.ts` builds the initial text-file baseline for each workspace folder and later updates that baseline after observed writes. This is why the fallback watcher can compare a newly written file against the prior workspace content instead of treating every file as brand new.
+When the last hunk for a file is resolved, `DiffManager.cleanup()` removes the snapshot, clears decorations and insets, closes the diff tab, and optionally reopens the file as a normal editor while preserving cursor and scroll position.
 
 ### UI composition
 
 There are two persistent webview surfaces:
 
-- `src/views/sessionPanel.ts` shows built-in runner status, pending files, and hook installation status.
+- `src/views/sessionPanel.ts` shows built-in runner status and the pending-files tree, plus Accept All / Reject All bulk actions.
 - `src/views/navBarPanel.ts` shows accept/reject controls plus previous/next pending-file navigation.
 
 Pending-file navigation itself lives in `src/diff/navigationManager.ts`, but the navigation UI is updated indirectly through callbacks fired by `InlineDiffRenderer` and `DiffManager` state changes.
@@ -96,20 +93,19 @@ Pending-file navigation itself lives in `src/diff/navigationManager.ts`, but the
 
 - Path normalization is load-bearing across the codebase: paths are resolved through `vscode.Uri.file(...).fsPath` and lowercased on Windows before comparisons.
 - Snapshot persistence is designed to survive VS Code restarts, so changes to snapshot shape or cleanup behavior affect restore logic as well as live diffing.
-- Built-in session launch is Claude-only even though the extension can still review Codex/Qwen edits through hooks or workspace watching.
 
 ## Registered Commands and Keybindings
 
 | Command | Keybinding | Purpose |
 | --- | --- | --- |
-| `ai-cli-diff-view.startSession` | `Ctrl+Shift+A` | Start an AI session |
+| `ai-cli-diff-view.startSession` | `Ctrl+Shift+A` | Start a Claude session |
 | `ai-cli-diff-view.acceptAllHunks` | `Ctrl+Shift+Y` | Accept all changes in the active file |
 | `ai-cli-diff-view.revertAllHunks` | `Ctrl+Shift+Z` | Revert all changes in the active file |
 | `ai-cli-diff-view.acceptAllChanges` | — | Accept all pending changes across files |
-| `ai-cli-diff-view.acceptHunk` | — | Accept one hunk |
-| `ai-cli-diff-view.revertHunk` | — | Revert one hunk |
+| `ai-cli-diff-view.revertAllChanges` | — | Revert all pending changes across files |
+| `ai-cli-diff-view.acceptHunk` | — | Accept one hunk (used by the inset buttons) |
+| `ai-cli-diff-view.revertHunk` | — | Revert one hunk (used by the inset buttons) |
 | `ai-cli-diff-view.prevFile` | `Alt+H` | Go to previous pending file |
 | `ai-cli-diff-view.nextFile` | `Alt+L` | Go to next pending file |
-| `ai-cli-diff-view.installHooks` | — | Install Claude CLI hooks |
 
 The when-clause context key `ai-cli-diff-view.hasPendingDiff` controls editor-title actions and pending-file navigation keybinding visibility.

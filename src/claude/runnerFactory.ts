@@ -33,9 +33,8 @@ export async function createRunner(
   const available = detectAvailableTools();
   if (available.length === 0) {
     throw new Error(
-      'No supported AI CLI launcher found on PATH.\n' +
-      'Best supported review workflows: Claude, Codex, and Qwen.\n' +
-      'Built-in session launch currently requires Claude Code:\n' +
+      'Claude Code CLI not found on PATH.\n' +
+      'Install Claude Code and ensure "claude" is on your PATH:\n' +
       '  • Claude Code: https://claude.ai/code'
     );
   }
