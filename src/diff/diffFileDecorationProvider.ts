@@ -1,7 +1,7 @@
 /**
  * diffFileDecorationProvider.ts
  *
- * Decorates files in the explorer that have a pending AI CLI diff and tints
+ * Decorates files in the explorer that have a pending out-of-band diff and tints
  * every ancestor folder so changes are visible at any level of nesting.
  * Mirrors the way Git surfaces modified files (file-level badge, parent-folder
  * color tint, no badge on folders).
@@ -67,15 +67,15 @@ export class DiffFileDecorationProvider implements vscode.FileDecorationProvider
     if (this.pending.has(fsPath)) {
       return {
         badge: '●',
-        tooltip: 'AI CLI Diff: pending change',
-        color: new vscode.ThemeColor('aiCliDiffView.pendingFileForeground'),
+        tooltip: 'Out-of-band diffs: pending change',
+        color: new vscode.ThemeColor('outOfBandDiffs.pendingFileForeground'),
       };
     }
 
     if (this.pendingAncestors.has(fsPath)) {
       return {
-        tooltip: 'AI CLI Diff: contains pending change',
-        color: new vscode.ThemeColor('aiCliDiffView.pendingFileForeground'),
+        tooltip: 'Out-of-band diffs: contains pending change',
+        color: new vscode.ThemeColor('outOfBandDiffs.pendingFileForeground'),
       };
     }
 

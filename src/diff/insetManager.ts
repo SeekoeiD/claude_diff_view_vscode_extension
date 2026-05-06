@@ -59,9 +59,9 @@ export class InsetManager {
       inset.webview.html = this.renderHtml(hunk, i + 1, total);
       inset.webview.onDidReceiveMessage((msg: { type?: string }) => {
         if (msg?.type === 'accept') {
-          void vscode.commands.executeCommand('ai-cli-diff-view.acceptHunk', filePath, hunk.id);
+          void vscode.commands.executeCommand('out-of-band-diffs.acceptHunk', filePath, hunk.id);
         } else if (msg?.type === 'revert') {
-          void vscode.commands.executeCommand('ai-cli-diff-view.revertHunk', filePath, hunk.id);
+          void vscode.commands.executeCommand('out-of-band-diffs.revertHunk', filePath, hunk.id);
         }
       });
       inset.onDidDispose(() => {

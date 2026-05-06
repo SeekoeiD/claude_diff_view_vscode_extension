@@ -5,7 +5,7 @@ import { DiffManager } from '../diff/diffManager';
 type SessionState = 'idle' | 'running' | 'error';
 
 export class SessionPanelProvider implements vscode.WebviewViewProvider {
-  public static readonly viewType = 'ai-cli-diff-view.session';
+  public static readonly viewType = 'out-of-band-diffs.session';
 
   private view?: vscode.WebviewView;
   private state: SessionState = 'idle';
@@ -61,11 +61,11 @@ export class SessionPanelProvider implements vscode.WebviewViewProvider {
     });
     webviewView.webview.onDidReceiveMessage((msg: { command?: string; path?: string }) => {
       if (msg.command === 'openFile' && msg.path && typeof msg.path === 'string') {
-        void vscode.commands.executeCommand('ai-cli-diff-view.openPendingFile', msg.path);
+        void vscode.commands.executeCommand('out-of-band-diffs.openPendingFile', msg.path);
       } else if (msg.command === 'acceptAllChanges') {
-        void vscode.commands.executeCommand('ai-cli-diff-view.acceptAllChanges');
+        void vscode.commands.executeCommand('out-of-band-diffs.acceptAllChanges');
       } else if (msg.command === 'revertAllChanges') {
-        void vscode.commands.executeCommand('ai-cli-diff-view.revertAllChanges');
+        void vscode.commands.executeCommand('out-of-band-diffs.revertAllChanges');
       }
     });
     this.render();

@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 
 export class DiffActionPanel implements vscode.WebviewViewProvider {
-  public static readonly viewType = 'ai-cli-diff-view.actions';
+  public static readonly viewType = 'out-of-band-diffs.actions';
 
   private view?: vscode.WebviewView;
   private currentFilePath: string | undefined;
@@ -60,7 +60,7 @@ export class DiffActionPanel implements vscode.WebviewViewProvider {
 
     const content = basename
       ? `
-        <span class="filename">AI CLI Diff | ${escapeHtml(basename)}</span>
+        <span class="filename">Out-of-band diffs | ${escapeHtml(basename)}</span>
         <div class="actions">
           <button class="btn accept" onclick="send('accept')">
             Accept file <kbd>Ctrl/Cmd+Enter</kbd>
@@ -70,7 +70,7 @@ export class DiffActionPanel implements vscode.WebviewViewProvider {
           </button>
           ${counter}
         </div>`
-      : `<span class="idle">No active AI CLI diff - open a diff tab to review</span>`;
+      : `<span class="idle">No active out-of-band diff - open a diff tab to review</span>`;
 
     return `<!DOCTYPE html>
 <html lang="en">

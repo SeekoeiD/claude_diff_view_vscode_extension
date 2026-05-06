@@ -52,8 +52,8 @@ export function activate(context: vscode.ExtensionContext): void {
   });
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('ai-cli-diff-view.nextFile', () => navigationManager.nextFile()),
-    vscode.commands.registerCommand('ai-cli-diff-view.prevFile', () => navigationManager.prevFile())
+    vscode.commands.registerCommand('out-of-band-diffs.nextFile', () => navigationManager.nextFile()),
+    vscode.commands.registerCommand('out-of-band-diffs.prevFile', () => navigationManager.prevFile())
   );
 
   function updateNavBarState(): void {

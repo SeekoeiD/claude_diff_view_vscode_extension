@@ -39,64 +39,39 @@ Optional Claude session launcher:
   (see [Claude Code](https://claude.ai/code)). Not needed for any other
   out-of-band workflow.
 
-## Install into your real VS Code
+## Quick setup
 
-The extension uses the `editorInsets` proposed API to render the red phantom
-rows on a live file. The Marketplace rejects extensions that depend on proposed
-APIs, so you sideload a local VSIX and persistently grant the proposed API to
-this extension via `argv.json`.
-
-### 1. Build and install the VSIX
+The extension uses the `editorInsets` proposed API, so it has to be sideloaded
+— the VS Code Marketplace blocks proposed-API extensions.
 
 ```powershell
 npm install
 npm run compile
 npx vsce package
-code --install-extension ai-cli-diff-view-1.0.9.vsix --force
+code --install-extension out-of-band-diffs-1.0.9.vsix --force
 ```
 
-`vsce package` will warn that `enabledApiProposals` is set — that is expected
-and the `.vsix` is still produced. If `code` is not on your `PATH`, use the
-absolute path to the CLI shim, e.g. on Windows:
-
-```powershell
-& "$env:LOCALAPPDATA\Programs\Microsoft VS Code\bin\code.cmd" `
-    --install-extension "$PWD\ai-cli-diff-view-1.0.9.vsix" --force
-```
-
-### 2. Persist the proposed-API grant
-
-Open the runtime arguments file via the command palette:
-`Preferences: Configure Runtime Arguments`. VS Code opens `argv.json`. Add an
-`enable-proposed-api` key listing this extension's id (`<publisher>.<name>`):
+Then run `Preferences: Configure Runtime Arguments` in VS Code and add this
+entry to the opened `argv.json`:
 
 ```jsonc
-{
-  // ...existing entries...
-  "enable-proposed-api": ["SeekoeiD.ai-cli-diff-view"]
-}
+"enable-proposed-api": ["SeekoeiD.out-of-band-diffs"]
 ```
 
-### 3. Fully restart VS Code
+Fully restart VS Code — close every window. `Developer: Reload Window` is not
+enough; `argv.json` is only read on process startup.
 
-`argv.json` is read once on process startup, so close every VS Code window and
-reopen. `Developer: Reload Window` is not enough.
+### Iterating
 
-### Iterating on the extension
-
-For day-to-day development, just press `F5` from this repo to launch the
-Extension Development Host — proposed APIs are granted automatically there.
-
-When you want to refresh the installed copy after code changes:
+`F5` from this repo launches an Extension Development Host with proposed APIs
+already granted — that's the fastest dev loop. To refresh the installed copy
+after code changes:
 
 ```powershell
-npm run compile
-npx vsce package
-code --install-extension ai-cli-diff-view-1.0.9.vsix --force
+npm run compile && npx vsce package && code --install-extension out-of-band-diffs-1.0.9.vsix --force
 ```
 
-Then `Developer: Reload Window` (a full restart is only needed if `argv.json`
-itself changed).
+Then `Developer: Reload Window`.
 
 ---
 

@@ -61,7 +61,7 @@ export function registerAllCommands(deps: CommandDeps): void {
   }
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('ai-cli-diff-view.startSession', async () => {
+    vscode.commands.registerCommand('out-of-band-diffs.startSession', async () => {
       const workingDir = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? process.cwd();
       const runner = await ensureRunner();
       if (!runner) {
@@ -70,7 +70,7 @@ export function registerAllCommands(deps: CommandDeps): void {
 
       const toolLabel = runner.toolName.charAt(0).toUpperCase() + runner.toolName.slice(1);
       const prompt = await vscode.window.showInputBox({
-        title: `AI CLI Diff: Start ${toolLabel} Session`,
+        title: `Out-of-band diffs: Start ${toolLabel} Session`,
         prompt: `Enter a prompt for ${toolLabel}`,
         placeHolder: 'e.g. "Add JSDoc comments to all functions"',
         ignoreFocusOut: true,
@@ -81,7 +81,7 @@ export function registerAllCommands(deps: CommandDeps): void {
 
       sessionPanel.setRunning(prompt);
       await vscode.window.withProgress(
-        { location: vscode.ProgressLocation.Notification, title: `AI CLI Diff (${toolLabel})`, cancellable: false },
+        { location: vscode.ProgressLocation.Notification, title: `Out-of-band diffs (${toolLabel})`, cancellable: false },
         async (progress) => {
           progress.report({ message: 'Starting session...' });
           const onProgress = (step: string): void => {
@@ -103,7 +103,7 @@ export function registerAllCommands(deps: CommandDeps): void {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('ai-cli-diff-view.openPendingFile', async (filePath?: string) => {
+    vscode.commands.registerCommand('out-of-band-diffs.openPendingFile', async (filePath?: string) => {
       if (!filePath || typeof filePath !== 'string') {
         return;
       }
@@ -112,13 +112,13 @@ export function registerAllCommands(deps: CommandDeps): void {
         await diffManager.openDiff(filePath);
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : String(err);
-        vscode.window.showErrorMessage(`AI CLI Diff: could not open file - ${message}`);
+        vscode.window.showErrorMessage(`Out-of-band diffs: could not open file - ${message}`);
       }
     })
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('ai-cli-diff-view.acceptAllHunks', async () => {
+    vscode.commands.registerCommand('out-of-band-diffs.acceptAllHunks', async () => {
       const filePath = getActiveDiffFilePath();
       if (!filePath) {
         vscode.window.showWarningMessage('No active inline diff.');
@@ -130,7 +130,7 @@ export function registerAllCommands(deps: CommandDeps): void {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('ai-cli-diff-view.acceptAllChanges', async () => {
+    vscode.commands.registerCommand('out-of-band-diffs.acceptAllChanges', async () => {
       const total = await diffManager.acceptAllPending();
       if (total === 0) {
         vscode.window.showWarningMessage('No pending changes to accept.');
@@ -141,7 +141,7 @@ export function registerAllCommands(deps: CommandDeps): void {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('ai-cli-diff-view.revertAllChanges', async () => {
+    vscode.commands.registerCommand('out-of-band-diffs.revertAllChanges', async () => {
       const total = await diffManager.revertAllPending();
       if (total === 0) {
         vscode.window.showWarningMessage('No pending changes to revert.');
@@ -152,7 +152,7 @@ export function registerAllCommands(deps: CommandDeps): void {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('ai-cli-diff-view.revertAllHunks', async () => {
+    vscode.commands.registerCommand('out-of-band-diffs.revertAllHunks', async () => {
       const filePath = getActiveDiffFilePath();
       if (!filePath) {
         vscode.window.showWarningMessage('No active inline diff.');
@@ -164,7 +164,7 @@ export function registerAllCommands(deps: CommandDeps): void {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('ai-cli-diff-view.acceptHunk', async (filePath?: string, hunkId?: string) => {
+    vscode.commands.registerCommand('out-of-band-diffs.acceptHunk', async (filePath?: string, hunkId?: string) => {
       const targetPath = filePath ?? getActiveDiffFilePath();
       if (!targetPath) {
         vscode.window.showWarningMessage('No active inline diff.');
@@ -179,7 +179,7 @@ export function registerAllCommands(deps: CommandDeps): void {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('ai-cli-diff-view.revertHunk', async (filePath?: string, hunkId?: string) => {
+    vscode.commands.registerCommand('out-of-band-diffs.revertHunk', async (filePath?: string, hunkId?: string) => {
       const targetPath = filePath ?? getActiveDiffFilePath();
       if (!targetPath) {
         vscode.window.showWarningMessage('No active inline diff.');

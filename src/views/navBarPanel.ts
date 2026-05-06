@@ -30,7 +30,7 @@ const EXT_ICON: Record<string, string> = {
 };
 
 export class NavBarPanel implements vscode.WebviewViewProvider {
-  public static readonly viewType = 'ai-cli-diff-view.navBar';
+  public static readonly viewType = 'out-of-band-diffs.navBar';
 
   private view?: vscode.WebviewView;
   private navInfo?: NavInfo;
@@ -49,11 +49,11 @@ export class NavBarPanel implements vscode.WebviewViewProvider {
     this.iconBase = webviewView.webview.asWebviewUri(iconsDir).toString() + '/';
     webviewView.webview.onDidReceiveMessage((msg: { command: string }) => {
       switch (msg.command) {
-        case 'prev':   vscode.commands.executeCommand('ai-cli-diff-view.prevFile'); break;
-        case 'next':   vscode.commands.executeCommand('ai-cli-diff-view.nextFile'); break;
-        case 'accept': vscode.commands.executeCommand('ai-cli-diff-view.acceptAllHunks'); break;
-        case 'acceptAllChanges': vscode.commands.executeCommand('ai-cli-diff-view.acceptAllChanges'); break;
-        case 'revert': vscode.commands.executeCommand('ai-cli-diff-view.revertAllHunks'); break;
+        case 'prev':   vscode.commands.executeCommand('out-of-band-diffs.prevFile'); break;
+        case 'next':   vscode.commands.executeCommand('out-of-band-diffs.nextFile'); break;
+        case 'accept': vscode.commands.executeCommand('out-of-band-diffs.acceptAllHunks'); break;
+        case 'acceptAllChanges': vscode.commands.executeCommand('out-of-band-diffs.acceptAllChanges'); break;
+        case 'revert': vscode.commands.executeCommand('out-of-band-diffs.revertAllHunks'); break;
       }
     });
     this.render();

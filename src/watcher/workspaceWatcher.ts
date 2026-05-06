@@ -114,7 +114,7 @@ export class WorkspaceWatcher {
     try {
       this.snapshots.buildInitialSnapshots(folderPath);
     } catch (err) {
-      console.error('[ai-cli-diff-view] workspaceWatcher buildInitialSnapshots error:', err);
+      console.error('[out-of-band-diffs] workspaceWatcher buildInitialSnapshots error:', err);
     }
   }
 
@@ -194,7 +194,7 @@ export class WorkspaceWatcher {
   private triggerDiff(filePath: string, originalContent: string, newContent: string, fileExistedBefore: boolean): void {
     this.diffManager.loadSnapshot(filePath, originalContent, fileExistedBefore);
     this.diffManager.openDiff(filePath).catch((err: unknown) => {
-      console.error('[ai-cli-diff-view] workspaceWatcher openDiff failed:', err);
+      console.error('[out-of-band-diffs] workspaceWatcher openDiff failed:', err);
     });
   }
 

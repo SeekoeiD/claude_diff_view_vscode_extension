@@ -1,5 +1,5 @@
 {
-  "name": "ai-cli-diff-view",
+  "name": "out-of-band-diffs",
   "displayName": "Out-of-band diffs",
   "description": "Inline diff review for out-of-band file edits in VS Code (any external writer; optional Claude Code session launcher)",
   "version": "1.0.9",
@@ -31,115 +31,115 @@
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "ai-cli-diff-view",
-          "title": "AI CLI diff view",
+          "id": "out-of-band-diffs",
+          "title": "Out-of-band diffs",
           "icon": "media/claude-icon.svg"
         }
       ]
     },
     "views": {
-      "ai-cli-diff-view": [
+      "out-of-band-diffs": [
         {
-          "id": "ai-cli-diff-view.session",
+          "id": "out-of-band-diffs.session",
           "name": "Session",
           "type": "webview"
         }
       ],
       "explorer": [
         {
-          "id": "ai-cli-diff-view.navBar",
-          "name": "AI CLI Diff",
+          "id": "out-of-band-diffs.navBar",
+          "name": "Out-of-band diffs",
           "type": "webview"
         }
       ]
     },
     "commands": [
       {
-        "command": "ai-cli-diff-view.startSession",
-        "title": "AI CLI Diff: Start Claude Session"
+        "command": "out-of-band-diffs.startSession",
+        "title": "Out-of-band diffs: Start Claude Session"
       },
       {
-        "command": "ai-cli-diff-view.acceptAllHunks",
-        "title": "AI CLI Diff: Accept All Changes"
+        "command": "out-of-band-diffs.acceptAllHunks",
+        "title": "Out-of-band diffs: Accept All Changes"
       },
       {
-        "command": "ai-cli-diff-view.acceptAllChanges",
-        "title": "AI CLI Diff: Accept All Changes (All Files)"
+        "command": "out-of-band-diffs.acceptAllChanges",
+        "title": "Out-of-band diffs: Accept All Changes (All Files)"
       },
       {
-        "command": "ai-cli-diff-view.revertAllHunks",
-        "title": "AI CLI Diff: Revert All Changes"
+        "command": "out-of-band-diffs.revertAllHunks",
+        "title": "Out-of-band diffs: Revert All Changes"
       },
       {
-        "command": "ai-cli-diff-view.revertAllChanges",
-        "title": "AI CLI Diff: Revert All Changes (All Files)"
+        "command": "out-of-band-diffs.revertAllChanges",
+        "title": "Out-of-band diffs: Revert All Changes (All Files)"
       },
       {
-        "command": "ai-cli-diff-view.acceptHunk",
-        "title": "AI CLI Diff: Accept Hunk"
+        "command": "out-of-band-diffs.acceptHunk",
+        "title": "Out-of-band diffs: Accept Hunk"
       },
       {
-        "command": "ai-cli-diff-view.revertHunk",
-        "title": "AI CLI Diff: Revert Hunk"
+        "command": "out-of-band-diffs.revertHunk",
+        "title": "Out-of-band diffs: Revert Hunk"
       },
       {
-        "command": "ai-cli-diff-view.openPendingFile",
-        "title": "AI CLI Diff: Open Pending File"
+        "command": "out-of-band-diffs.openPendingFile",
+        "title": "Out-of-band diffs: Open Pending File"
       },
       {
-        "command": "ai-cli-diff-view.nextFile",
-        "title": "AI CLI Diff: Next Edited File"
+        "command": "out-of-band-diffs.nextFile",
+        "title": "Out-of-band diffs: Next Edited File"
       },
       {
-        "command": "ai-cli-diff-view.prevFile",
-        "title": "AI CLI Diff: Previous Edited File"
+        "command": "out-of-band-diffs.prevFile",
+        "title": "Out-of-band diffs: Previous Edited File"
       }
     ],
     "keybindings": [
       {
-        "command": "ai-cli-diff-view.startSession",
+        "command": "out-of-band-diffs.startSession",
         "key": "ctrl+shift+a",
         "mac": "cmd+shift+a"
       },
       {
-        "command": "ai-cli-diff-view.acceptAllHunks",
+        "command": "out-of-band-diffs.acceptAllHunks",
         "key": "ctrl+shift+y",
         "mac": "cmd+shift+y"
       },
       {
-        "command": "ai-cli-diff-view.revertAllHunks",
+        "command": "out-of-band-diffs.revertAllHunks",
         "key": "ctrl+shift+z",
         "mac": "cmd+shift+z"
       },
       {
-        "command": "ai-cli-diff-view.prevFile",
+        "command": "out-of-band-diffs.prevFile",
         "key": "alt+h",
-        "when": "ai-cli-diff-view.hasPendingDiff"
+        "when": "out-of-band-diffs.hasPendingDiff"
       },
       {
-        "command": "ai-cli-diff-view.nextFile",
+        "command": "out-of-band-diffs.nextFile",
         "key": "alt+l",
-        "when": "ai-cli-diff-view.hasPendingDiff"
+        "when": "out-of-band-diffs.hasPendingDiff"
       }
     ],
     "menus": {
       "editor/title": [
         {
-          "command": "ai-cli-diff-view.acceptAllHunks",
-          "when": "ai-cli-diff-view.hasPendingDiff",
+          "command": "out-of-band-diffs.acceptAllHunks",
+          "when": "out-of-band-diffs.hasPendingDiff",
           "group": "navigation@1"
         },
         {
-          "command": "ai-cli-diff-view.revertAllHunks",
-          "when": "ai-cli-diff-view.hasPendingDiff",
+          "command": "out-of-band-diffs.revertAllHunks",
+          "when": "out-of-band-diffs.hasPendingDiff",
           "group": "navigation@2"
         }
       ]
     },
     "colors": [
       {
-        "id": "aiCliDiffView.pendingFileForeground",
-        "description": "Color of files and ancestor folders that contain an AI CLI Diff pending change.",
+        "id": "outOfBandDiffs.pendingFileForeground",
+        "description": "Color of files and ancestor folders that contain an Out-of-band diffs pending change.",
         "defaults": {
           "dark": "#3794FF",
           "light": "#0066BF",

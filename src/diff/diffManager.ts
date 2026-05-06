@@ -13,7 +13,7 @@ import { InlineDiffRenderer } from './inlineDiffRenderer';
 import { calculateHunks } from './hunkCalculator';
 import { isExcludedPathSegment } from '../watcher/pathExclusions';
 
-const STATE_KEY = 'ai-cli-diff.snapshots';
+const STATE_KEY = 'out-of-band-diffs.snapshots';
 
 interface SnapshotState {
   content: string;
@@ -43,7 +43,7 @@ export class DiffManager {
     this.restoreState();
 
     context.subscriptions.push(
-      vscode.workspace.registerTextDocumentContentProvider('ai-cli-diff', {
+      vscode.workspace.registerTextDocumentContentProvider('out-of-band-diffs', {
         onDidChange: this.contentProviderEventEmitter.event,
         provideTextDocumentContent: (uri: vscode.Uri) => {
           // Strip the query (timestamp) so we resolve to the real file path
@@ -195,7 +195,7 @@ export class DiffManager {
 
       // Tell VS Code to reload the left-hand (Original) side of the Diff view
       const queryId = this.snapshotQueries.get(absPath) || '';
-      const originalUri = vscode.Uri.file(absPath).with({ scheme: 'ai-cli-diff', query: queryId });
+      const originalUri = vscode.Uri.file(absPath).with({ scheme: 'out-of-band-diffs', query: queryId });
       this.contentProviderEventEmitter.fire(originalUri);
 
       // Refresh the Inline Renderer and recompute CodeLenses

@@ -54,10 +54,10 @@ There are two paths that can open a diff:
 
 - the original-content snapshot map
 - the stable per-file query IDs used to reuse diff tabs
-- persistence in workspace state under `ai-cli-diff.snapshots`
+- persistence in workspace state under `out-of-band-diffs.snapshots`
 - the public accept/revert operations used by commands and inset buttons
 
-The left side of the diff is served through a `TextDocumentContentProvider` on the custom `ai-cli-diff` URI scheme, backed by the stored snapshot. The right side is the live workspace file.
+The left side of the diff is served through a `TextDocumentContentProvider` on the custom `out-of-band-diffs` URI scheme, backed by the stored snapshot. The right side is the live workspace file.
 
 `src/diff/inlineDiffRenderer.ts` holds the per-file hunk state computed by `src/diff/hunkCalculator.ts`. It drives `DecorationManager` for added-line highlighting and `InsetManager` for the phantom red rows + Accept/Revert action bar.
 
@@ -65,9 +65,9 @@ The left side of the diff is served through a `TextDocumentContentProvider` on t
 
 `src/diff/decorationManager.ts` paints the green background on added lines and forwards each hunk to `InsetManager`.
 
-`src/diff/insetManager.ts` uses the proposed `editorInsets` API (`vscode.window.createWebviewTextEditorInset`) to render true phantom rows above the change. Each per-hunk inset is a small webview that contains the deleted lines (red) plus a final action row with `✓ Accept Hunk N/M` and `↶ Revert Hunk N/M` buttons. Button clicks post messages back to the extension and dispatch the existing `ai-cli-diff-view.acceptHunk` / `ai-cli-diff-view.revertHunk` commands.
+`src/diff/insetManager.ts` uses the proposed `editorInsets` API (`vscode.window.createWebviewTextEditorInset`) to render true phantom rows above the change. Each per-hunk inset is a small webview that contains the deleted lines (red) plus a final action row with `✓ Accept Hunk N/M` and `↶ Revert Hunk N/M` buttons. Button clicks post messages back to the extension and dispatch the existing `out-of-band-diffs.acceptHunk` / `out-of-band-diffs.revertHunk` commands.
 
-Because `editorInsets` is a proposed API, `package.json` declares `enabledApiProposals: ["editorInsets"]` and the typings live at `src/vscode.proposed.editorInsets.d.ts`. The extension can only run in an Extension Development Host (F5) or with `--enable-proposed-api SeekoeiD.ai-cli-diff-view`; the marketplace rejects published extensions that depend on proposed APIs.
+Because `editorInsets` is a proposed API, `package.json` declares `enabledApiProposals: ["editorInsets"]` and the typings live at `src/vscode.proposed.editorInsets.d.ts`. The extension can only run in an Extension Development Host (F5) or with `--enable-proposed-api SeekoeiD.out-of-band-diffs`; the marketplace rejects published extensions that depend on proposed APIs.
 
 ### Review and resolution flow
 
@@ -98,14 +98,14 @@ Pending-file navigation itself lives in `src/diff/navigationManager.ts`, but the
 
 | Command | Keybinding | Purpose |
 | --- | --- | --- |
-| `ai-cli-diff-view.startSession` | `Ctrl+Shift+A` | Start a Claude session |
-| `ai-cli-diff-view.acceptAllHunks` | `Ctrl+Shift+Y` | Accept all changes in the active file |
-| `ai-cli-diff-view.revertAllHunks` | `Ctrl+Shift+Z` | Revert all changes in the active file |
-| `ai-cli-diff-view.acceptAllChanges` | — | Accept all pending changes across files |
-| `ai-cli-diff-view.revertAllChanges` | — | Revert all pending changes across files |
-| `ai-cli-diff-view.acceptHunk` | — | Accept one hunk (used by the inset buttons) |
-| `ai-cli-diff-view.revertHunk` | — | Revert one hunk (used by the inset buttons) |
-| `ai-cli-diff-view.prevFile` | `Alt+H` | Go to previous pending file |
-| `ai-cli-diff-view.nextFile` | `Alt+L` | Go to next pending file |
+| `out-of-band-diffs.startSession` | `Ctrl+Shift+A` | Start a Claude session |
+| `out-of-band-diffs.acceptAllHunks` | `Ctrl+Shift+Y` | Accept all changes in the active file |
+| `out-of-band-diffs.revertAllHunks` | `Ctrl+Shift+Z` | Revert all changes in the active file |
+| `out-of-band-diffs.acceptAllChanges` | — | Accept all pending changes across files |
+| `out-of-band-diffs.revertAllChanges` | — | Revert all pending changes across files |
+| `out-of-band-diffs.acceptHunk` | — | Accept one hunk (used by the inset buttons) |
+| `out-of-band-diffs.revertHunk` | — | Revert one hunk (used by the inset buttons) |
+| `out-of-band-diffs.prevFile` | `Alt+H` | Go to previous pending file |
+| `out-of-band-diffs.nextFile` | `Alt+L` | Go to next pending file |
 
-The when-clause context key `ai-cli-diff-view.hasPendingDiff` controls editor-title actions and pending-file navigation keybinding visibility.
+The when-clause context key `out-of-band-diffs.hasPendingDiff` controls editor-title actions and pending-file navigation keybinding visibility.
