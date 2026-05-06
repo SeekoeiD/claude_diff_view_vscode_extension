@@ -6,6 +6,11 @@ Sessions are launched from inside VS Code via the built-in runner (`Ctrl+Shift+A
 The extension spawns `claude` and tracks every Write/Edit/MultiEdit tool call so you
 can review changes as red phantom rows above the green added lines, hunk by hunk.
 
+Originally based on
+[konan-1947/claude_diff_view_vscode_extension](https://github.com/konan-1947/claude_diff_view_vscode_extension).
+This fork has since been rewritten to use the `editorInsets` proposed API for
+true phantom-line rendering on the live file and is Claude-only.
+
 ## Usage
 
 1. Press `Ctrl+Shift+A` (`Cmd+Shift+A` on macOS) to start a Claude session.
