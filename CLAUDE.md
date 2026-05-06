@@ -4,11 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This Extension Does
 
-AI CLI diff view is a VS Code extension for reviewing **Claude Code** edits as inline diffs inside the editor. Claude sessions are launched from inside VS Code via the built-in runner; the extension spawns the `claude` CLI, parses its `stream-json` output, snapshots files before each Write/Edit/MultiEdit tool call, and opens a per-file inline review with red phantom rows above green added lines and per-hunk Accept/Revert controls.
+This is a VS Code extension for reviewing **out-of-band file edits** as inline diffs. "Out-of-band" means any write to a workspace file that did not come from your VS Code buffer — an external editor like Notepad, a shell script, a code formatter, or an AI CLI running in a terminal. When such a write is detected, the extension opens a per-file inline review with red phantom rows above green added lines and per-hunk Accept/Revert controls embedded between them.
 
-A workspace file watcher provides a secondary detection path for out-of-band writes (e.g. you edit a file by hand) so the diff still surfaces inside the IDE without any external CLI hook integration.
+A built-in **Claude Code** session launcher (`Ctrl+Shift+A`) is included as an optional convenience: it spawns `claude --output-format stream-json --verbose -p <prompt>`, parses tool-use events, and feeds the same review pipeline. The extension is not Claude-specific — any external writer surfaces a diff via the workspace watcher path.
 
-CLI hook installation and multi-agent (Codex/Qwen) support have been removed. The extension is VS Code IDE only and Claude only.
+Earlier multi-agent (Codex/Qwen) hook integration has been removed. The extension is VS Code IDE only.
 
 ## Commands
 

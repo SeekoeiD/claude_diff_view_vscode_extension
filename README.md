@@ -1,25 +1,43 @@
-# AI CLI diff view
+# Out-of-band diffs (VS Code)
 
-VS Code extension for reviewing **Claude Code** edits as inline diffs inside the editor.
+VS Code extension for reviewing **out-of-band file edits** as inline diffs
+inside the editor. "Out-of-band" means any write to a file in the workspace
+that did not come from your VS Code buffer — Notepad, a shell script, an AI
+CLI running in a terminal, a code formatter, anything.
 
-Sessions are launched from inside VS Code via the built-in runner (`Ctrl+Shift+A`).
-The extension spawns `claude` and tracks every Write/Edit/MultiEdit tool call so you
-can review changes as red phantom rows above the green added lines, hunk by hunk.
+When such a write is detected, the extension shows a per-file inline review
+with red phantom rows (the deleted text) above green added lines, plus
+per-hunk **Accept** / **Revert** controls between them. Phantom rows on the
+live file are rendered through the `editorInsets` proposed API, the same
+mechanism Copilot uses for its edit previews.
+
+A built-in **Claude Code** session launcher (`Ctrl+Shift+A`) is included as an
+optional convenience — it runs `claude --output-format stream-json` and feeds
+the same review pipeline — but the extension is not Claude-specific. Any
+external process that writes to your workspace will surface a diff.
 
 Originally based on
-[konan-1947/claude_diff_view_vscode_extension](https://github.com/konan-1947/claude_diff_view_vscode_extension).
-This fork has since been rewritten to use the `editorInsets` proposed API for
-true phantom-line rendering on the live file and is Claude-only.
+[konan-1947/claude_diff_view_vscode_extension](https://github.com/konan-1947/claude_diff_view_vscode_extension);
+since rewritten around `editorInsets` and reframed around generic
+out-of-band edit review.
 
 ## Usage
 
-1. Press `Ctrl+Shift+A` (`Cmd+Shift+A` on macOS) to start a Claude session.
+The primary flow is just: edit a workspace file from outside VS Code (or have
+some other process do it), and review the resulting diff inside VS Code.
+
+Optional Claude session launcher:
+
+1. Press `Ctrl+Shift+A` (`Cmd+Shift+A` on macOS).
 2. Enter your prompt.
-3. Review pending diffs directly inside VS Code, accepting or reverting each hunk.
+3. Review pending diffs as Claude writes files, accepting or reverting each hunk.
 
 ## Requirements
 
-- The `claude` CLI must be on your `PATH` (see [Claude Code](https://claude.ai/code)).
+- VS Code 1.85+.
+- For the optional Claude session launcher: the `claude` CLI on your `PATH`
+  (see [Claude Code](https://claude.ai/code)). Not needed for any other
+  out-of-band workflow.
 
 ## Install into your real VS Code
 
