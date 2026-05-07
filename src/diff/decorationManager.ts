@@ -3,6 +3,7 @@
  *
  * Manages TextEditorDecorationType instances and the rendering of decorations
  * (added lines highlight, removed lines ghost text, gutter icons) onto the editor.
+ * Removed-line phantom rows are delegated to InsetManager.
  */
 
 import * as vscode from 'vscode';

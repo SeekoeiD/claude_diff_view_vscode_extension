@@ -2,7 +2,8 @@
  * fileSnapshotStore.ts
  *
  * Manages content snapshots of workspace files so WorkspaceWatcher can
- * detect external writes against a baseline.
+ * detect external writes against a baseline. Snapshots are kept in memory
+ * only — there's no persistence, so they're rebuilt on each session start.
  */
 
 import * as fs from 'fs';

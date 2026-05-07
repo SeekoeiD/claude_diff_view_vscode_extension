@@ -87,7 +87,12 @@ export function activate(context: vscode.ExtensionContext): void {
         if (!diffManager.renderer.isEditorInDiffView(editor) && !isOpeningDiff) {
           isOpeningDiff = true;
           try {
-            await diffManager.openDiff(filePath);
+            // takeFocus=false: this handler fires both for genuine user nav
+            // and as a side effect of our own preserveFocus=true opens from
+            // the watcher / Claude runner. In the user-nav case focus is
+            // already on the editor so preserveFocus is a no-op; in the
+            // watcher case it prevents a re-entrant focus steal.
+            await diffManager.openDiff(filePath, false);
           } finally {
             setTimeout(() => { isOpeningDiff = false; }, 500);
           }

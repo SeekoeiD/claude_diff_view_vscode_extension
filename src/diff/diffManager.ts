@@ -117,9 +117,16 @@ export class DiffManager {
 
   /**
    * Call AFTER Claude has finished editing the file.
-   * Opens the editor and renders the inline diff.
+   * Renders the inline diff, optionally bringing the editor to the front.
+   *
+   * `takeFocus` defaults to true (user-initiated callers expect to land in
+   * the file). Unsolicited callers — the workspace watcher and the in-IDE
+   * Claude runner — pass false. In that case we don't open the editor at
+   * all: snapshot/hunk state is stored, the pending-files panel updates,
+   * and decorations get painted lazily by `onDidChangeActiveTextEditor`
+   * when the user themselves brings the file into view.
    */
-  async openDiff(filePath: string): Promise<void> {
+  async openDiff(filePath: string, takeFocus = true): Promise<void> {
     const absPath = normalizePath(filePath);
     const snapshot = this.snapshots.get(absPath);
     if (snapshot === undefined) { return; }
@@ -149,12 +156,16 @@ export class DiffManager {
       return;
     }
 
-    // Open the real file directly so accept/revert hunk CodeLens shows
-    // inline in the normal editor instead of a side-by-side diff tab.
-    const modifiedUri = vscode.Uri.file(absPath);
-    await vscode.window.showTextDocument(modifiedUri, { preview: false });
+    if (takeFocus) {
+      // Open the real file directly so accept/revert hunk CodeLens shows
+      // inline in the normal editor instead of a side-by-side diff tab.
+      const modifiedUri = vscode.Uri.file(absPath);
+      await vscode.window.showTextDocument(modifiedUri, { preview: false });
+    }
 
-    // Renderer computes hunks and applies inline decorations / CodeLens.
+    // Renderer stores state and paints decorations on any editor that is
+    // already showing the file. If `takeFocus` was false and the file isn't
+    // visible anywhere, this is a no-op until the user opens it.
     this.renderer.show(absPath, snapshot.content, modifiedContent);
     this._onDidChangeDiffs.fire();
   }

@@ -1,8 +1,9 @@
 /**
  * hunkCalculator.ts
  *
- * Computes the "hunks" of change between two file-content strings.
- * Uses a simplified line-based Myers diff algorithm.
+ * Computes the "hunks" of change between two file-content strings (line-based).
+ * Uses a simplified line-based Myers diff for the LCS, then groups
+ * adjacent add/remove operations into hunks.
  */
 
 export interface Hunk {

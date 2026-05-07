@@ -209,7 +209,7 @@ export class ClaudeRunner implements IAiRunner {
         pendingToolUses.delete(toolEvent.tool_use_id);
         const basename = filePath.split(/[\\/]/).pop() ?? filePath;
         onProgress?.(`Opening diff: ${basename}`);
-        this.diffManager.openDiff(filePath).catch((err: unknown) => {
+        this.diffManager.openDiff(filePath, false).catch((err: unknown) => {
           console.error('[out-of-band-diffs] openDiff failed:', err);
         });
       }

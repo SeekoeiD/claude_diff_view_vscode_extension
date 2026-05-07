@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { DiffManager } from './diffManager';
 
-/** Normalize path helper */
+/** Normalize a path so Windows / case differences don't trip equality checks. */
 function normalizePath(filePath: string): string {
   const fsPath = vscode.Uri.file(path.resolve(filePath)).fsPath;
   return process.platform === 'win32' ? fsPath.toLowerCase() : fsPath;

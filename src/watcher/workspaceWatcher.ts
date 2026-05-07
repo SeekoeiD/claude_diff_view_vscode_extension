@@ -193,7 +193,7 @@ export class WorkspaceWatcher {
 
   private triggerDiff(filePath: string, originalContent: string, newContent: string, fileExistedBefore: boolean): void {
     this.diffManager.loadSnapshot(filePath, originalContent, fileExistedBefore);
-    this.diffManager.openDiff(filePath).catch((err: unknown) => {
+    this.diffManager.openDiff(filePath, false).catch((err: unknown) => {
       console.error('[out-of-band-diffs] workspaceWatcher openDiff failed:', err);
     });
   }

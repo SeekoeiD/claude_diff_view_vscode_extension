@@ -2,7 +2,7 @@
   "name": "out-of-band-diffs",
   "displayName": "Out-of-band diffs",
   "description": "Inline diff review for out-of-band file edits in VS Code (any external writer; optional Claude Code session launcher)",
-  "version": "1.0.9",
+  "version": "1.0.10",
   "publisher": "SeekoeiD",
   "license": "MIT",
   "repository": {
